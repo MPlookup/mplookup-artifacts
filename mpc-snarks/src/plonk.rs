@@ -3,8 +3,8 @@ use ark_poly::univariate::DensePolynomial;
 use ark_poly_commit::marlin_pc::MarlinKZG10;
 use ark_std::{end_timer, start_timer, test_rng};
 use mpc_algebra::honest_but_curious::*;
-use mpc_plonk::*;
 use mpc_algebra::Reveal;
+use mpc_plonk::*;
 use std::collections::HashMap;
 
 type F = ark_bls12_377::Fr;
@@ -56,9 +56,7 @@ pub fn mpc_test_prove_and_verify(n_iters: usize) {
     let data_rng = &mut test_rng();
     let start = MF::rand(data_rng);
     let res = (0..steps).fold(start, |a, _| a * a);
-    let public: HashMap<String, F> = vec![("out".to_owned(), res.reveal())]
-        .into_iter()
-        .collect();
+    let public: HashMap<String, F> = vec![("out".to_owned(), res.reveal())].into_iter().collect();
     let c = PlonkCircuit::<MF>::new_squaring_circuit(steps, Some(start));
     let circ = CircuitLayout::from_circuit(&c);
 

@@ -19,8 +19,8 @@ use mpc_algebra::com::ComField;
 use mpc_algebra::honest_but_curious as hbc;
 use mpc_algebra::malicious_majority as mm;
 use mpc_algebra::*;
+use mpc_net::{MpcMultiNet, MpcNet};
 use mpc_trait::MpcWire;
-use mpc_net::{MpcNet, MpcMultiNet};
 
 use clap::arg_enum;
 use merlin::Transcript;
@@ -116,9 +116,7 @@ impl Opt {
                     ComputationDomain::G1
                 }
             }
-            Computation::NaiveMsm | Computation::GroupOps => {
-                ComputationDomain::Group
-            }
+            Computation::NaiveMsm | Computation::GroupOps => ComputationDomain::Group,
             Computation::PairingDh | Computation::PairingProd | Computation::PairingDiv => {
                 ComputationDomain::Pairing
             }
@@ -587,11 +585,7 @@ impl Computation {
         }
         outputs
     }
-    fn run_group<G: Group>(
-        &self,
-        inputs: Vec<G::ScalarField>,
-        generator: G,
-    ) {
+    fn run_group<G: Group>(&self, inputs: Vec<G::ScalarField>, generator: G) {
         match self {
             Computation::Dh => {
                 assert_eq!(2, inputs.len());
@@ -605,7 +599,10 @@ impl Computation {
                 assert_eq!(alice, bob);
             }
             Computation::Msm => {
-                let _bases: Vec<G> = (0u8..).map(|i| generator.mul(&G::ScalarField::from(i))).take(inputs.len()).collect();
+                let _bases: Vec<G> = (0u8..)
+                    .map(|i| generator.mul(&G::ScalarField::from(i)))
+                    .take(inputs.len())
+                    .collect();
                 todo!()
             }
             Computation::GroupOps => {
@@ -894,8 +891,11 @@ fn main() -> () {
                 }
             }
             ComputationDomain::Group | ComputationDomain::G1 => {
-                let generator = mm::MpcGroup::<ark_bls12_377::G1Projective>::from_public(ark_bls12_377::G1Projective::prime_subgroup_generator());
-                opt.computation.run_group::<mm::MpcGroup<ark_bls12_377::G1Projective>>(inputs, generator);
+                let generator = mm::MpcGroup::<ark_bls12_377::G1Projective>::from_public(
+                    ark_bls12_377::G1Projective::prime_subgroup_generator(),
+                );
+                opt.computation
+                    .run_group::<mm::MpcGroup<ark_bls12_377::G1Projective>>(inputs, generator);
             }
             d => panic!("Bad domain: {:?}", d),
         }
