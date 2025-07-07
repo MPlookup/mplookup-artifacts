@@ -91,6 +91,7 @@ where
     ///
     /// This follows the formulae from [\[ELM03\]](https://arxiv.org/abs/math/0208038).
     #[tracing::instrument(target = "r1cs", skip(self))]
+    #[allow(dead_code)]
     pub(crate) fn double_and_add(&self, other: &Self) -> Result<Self, SynthesisError> {
         if [self].is_constant() || other.is_constant() {
             self.double()?.add_unchecked(other)
