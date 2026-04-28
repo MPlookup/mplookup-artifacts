@@ -143,6 +143,10 @@ impl Connections {
         self.id == 0
     }
     fn broadcast(&mut self, bytes_out: &[u8]) -> Vec<Vec<u8>> {
+        if self.peers.len() == 0 {
+            return vec![];
+        }
+
         let timer = start_timer!(|| format!("Broadcast {}", bytes_out.len()));
         let m = bytes_out.len();
         let own_id = self.id;
@@ -173,6 +177,10 @@ impl Connections {
         r
     }
     fn send_to_king(&mut self, bytes_out: &[u8]) -> Option<Vec<Vec<u8>>> {
+        if self.peers.len() == 0 {
+            return None;
+        }
+
         let timer = start_timer!(|| format!("To king {}", bytes_out.len()));
         let m = bytes_out.len();
         let own_id = self.id;

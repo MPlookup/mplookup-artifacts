@@ -103,6 +103,235 @@ impl<T: Field, S: FieldShare<T>> MpcField<T, S> {
             Err(out_b)
         }
     }
+
+    /// Secure comparison that works for both public and shared values.
+    /// 
+    /// Returns a field element representing the less-than bit:
+    /// - Returns 0 if self >= other
+    /// - Returns 1 if self < other
+    /// 
+    /// For **public values**, performs normal plaintext comparison and returns the result as a public field element.
+    /// 
+    /// For **shared values**, uses bit decomposition protocol to securely compare without revealing values.
+    /// The result is returned as a **secret share** maintaining privacy.
+    /// 
+    /// For **heterogeneous values** (one Public, one Shared), automatically converts the Public value
+    /// to Shared using `from_public()` before comparison, returning a Shared result.
+    /// 
+    /// # MPC-Safe Comparison Protocol
+    /// 
+    /// Implements secure comparison using:
+    /// - edaBits for bit decomposition
+    /// - Boolean secret sharing for bit-level operations
+    /// - Bit adder circuits with carry propagation
+    /// - Comparison circuit to extract less-than bit
+    /// 
+    /// ## Protocol Steps
+    /// 
+    /// ```text
+    /// 1. Bit-decompose [a] and [b] using edaBits protocol
+    /// 2. For each bit position i from MSB to LSB:
+    ///    - Compute [xor_i] = [a_i] XOR [b_i]
+    /// 3. Find first position where bits differ (using prefix-OR)
+    /// 4. At that position, [b_i] gives the less-than bit
+    /// 5. Return as secret-shared field element (no reveal)
+    /// ```
+    /// 
+    /// See `FieldShare::secure_cmp()` documentation for detailed protocol description.
+    /// 
+    /// # Examples
+    /// 
+    /// ```no_run
+    /// # use mpc_algebra::honest_but_curious::MpcField;
+    /// # use ark_bls12_377::Fr;
+    /// // Public values: returns public 0 or 1
+    /// let a = MpcField::<Fr>::Public(Fr::from(10u64));
+    /// let b = MpcField::<Fr>::Public(Fr::from(42u64));
+    /// let is_less = a.secure_cmp(&b);  // Returns Public(Fr::from(1)) since 10 < 42
+    /// 
+    /// // Shared values: returns secret-shared 0 or 1
+    /// # /*
+    /// let x = MpcField::Shared(share1);
+    /// let y = MpcField::Shared(share2);
+    /// let is_less = x.secure_cmp(&y);  // Returns Shared([less_than_bit])
+    /// // Can be used in further MPC computations without revealing the result
+    /// # */
+    /// ```
+    #[inline]
+    pub fn secure_cmp(&self, other: &Self) -> Self 
+    where
+        T: PrimeField,
+        S: FieldShare<T>,
+    {
+        match (self, other) {
+            (Self::Public(x), Self::Public(y)) => {
+                // For public values, return 1 if x < y, else 0
+                if x < y {
+                    Self::Public(T::one())
+                } else {
+                    Self::Public(T::zero())
+                }
+            },
+            (Self::Shared(x), Self::Shared(y)) => Self::Shared(x.secure_cmp(y)),
+            (Self::Public(x), Self::Shared(y)) => {
+                // Convert public value to shared and compare
+                let x_shared = S::from_public(*x);
+                Self::Shared(x_shared.secure_cmp(y))
+            },
+            (Self::Shared(x), Self::Public(y)) => {
+                // Convert public value to shared and compare
+                let y_shared = S::from_public(*y);
+                Self::Shared(x.secure_cmp(&y_shared))
+            }
+        }
+    }
+
+    /// Batch secure comparison for multiple pairs.
+    /// 
+    /// Compares multiple pairs of values in a single batched operation.
+    /// For each pair (left[i], right[i]), returns 1 if left[i] < right[i], else 0.
+    /// 
+    /// This function optimizes communication by batching the reveal operations
+    /// during bit decomposition, reducing the number of communication rounds.
+    /// 
+    /// # Arguments
+    /// * `pairs` - A slice of (left, right) tuples to compare
+    /// 
+    /// # Returns
+    /// A vector of comparison results, where result[i] is 1 if left[i] < right[i], else 0
+    /// 
+    /// # Optimization
+    /// This function achieves performance gains by:
+    /// - For all-public values: uses fast path with no MPC operations
+    /// - For shared values: batches all reveal operations in bit decomposition into a single round
+    /// - Reduces n sequential reveals to 1 batched reveal for n comparisons
+    /// - Comparison operations use batched boolean operations as in single secure_cmp
+    #[inline]
+    pub fn batch_secure_cmp(pairs: &[(Self, Self)]) -> Vec<Self>
+    where
+        T: PrimeField,
+        S: FieldShare<T>,
+    {
+        if pairs.is_empty() {
+            return vec![];
+        }
+
+        // Check if all values are public - fast path
+        let all_public = pairs.iter().all(|(left, right)| {
+            matches!(left, Self::Public(_)) && matches!(right, Self::Public(_))
+        });
+
+        if all_public {
+            // Fast path: all public values
+            return pairs.iter().map(|(left, right)| {
+                if let (Self::Public(x), Self::Public(y)) = (left, right) {
+                    if x < y {
+                        Self::Public(T::one())
+                    } else {
+                        Self::Public(T::zero())
+                    }
+                } else {
+                    unreachable!()
+                }
+            }).collect();
+        }
+
+        // Convert all values to shared and perform batched comparison
+        let mut left_shares = Vec::with_capacity(pairs.len());
+        let mut right_shares = Vec::with_capacity(pairs.len());
+
+        for (left, right) in pairs {
+            let left_share = match left {
+                Self::Public(x) => S::from_public(*x),
+                Self::Shared(x) => *x,
+            };
+            let right_share = match right {
+                Self::Public(y) => S::from_public(*y),
+                Self::Shared(y) => *y,
+            };
+            left_shares.push(left_share);
+            right_shares.push(right_share);
+        }
+
+        // Batch compare all pairs
+        let result_shares = S::batch_secure_cmp(&left_shares, &right_shares);
+
+        // Convert back to MpcField
+        result_shares.into_iter().map(Self::Shared).collect()
+    }
+}
+
+impl<T: PrimeField, S: FieldShare<T>> MpcField<T, S> {
+    /// Secure inequality check that works for both public and shared values.
+    /// 
+    /// Returns a field element indicating whether values are not equal:
+    /// - Returns 1 if values are NOT equal
+    /// - Returns 0 if values ARE equal
+    /// 
+    /// For **public values**, performs normal inequality comparison and returns the result as a public field element.
+    /// 
+    /// For **shared values**, uses Fermat's little theorem to compute a shared result without revealing the values.
+    /// 
+    /// For **heterogeneous values** (one Public, one Shared), automatically converts the Public value
+    /// to Shared using `from_public()` before comparison, returning a Shared result.
+    #[inline]
+    pub fn secure_neq(&self, other: &Self) -> Self {
+        match (self, other) {
+            (Self::Public(x), Self::Public(y)) => {
+                // Return 0 if equal, 1 if not equal
+                if x == y {
+                    Self::Public(T::zero())
+                } else {
+                    Self::Public(T::one())
+                }
+            },
+            (Self::Shared(x), Self::Shared(y)) => {
+                Self::Shared(x.secure_neq(y, &mut DummyFieldTripleSource::default()))
+            },
+            (Self::Public(x), Self::Shared(y)) => {
+                // Convert public value to shared and compare
+                let x_shared = S::from_public(*x);
+                Self::Shared(x_shared.secure_neq(y, &mut DummyFieldTripleSource::default()))
+            },
+            (Self::Shared(x), Self::Public(y)) => {
+                // Convert public value to shared and compare
+                let y_shared = S::from_public(*y);
+                Self::Shared(x.secure_neq(&y_shared, &mut DummyFieldTripleSource::default()))
+            }
+        }
+    }
+
+    /// Secure equality check that works for both public and shared values.
+    /// Returns 1 if equal, 0 if not equal (inverse of secure_neq).
+    /// 
+    /// For public values, performs normal equality comparison and returns Public(1) for equal, Public(0) for not equal.
+    /// For shared values, computes 1 - secure_neq to get the equality indicator.
+    /// 
+    /// # Examples
+    /// 
+    /// ```no_run
+    /// # use mpc_algebra::honest_but_curious::MpcField;
+    /// # use ark_bls12_377::Fr;
+    /// // Public values: returns 1 if equal, 0 if not equal
+    /// let a = MpcField::<Fr>::Public(Fr::from(10u64));
+    /// let b = MpcField::<Fr>::Public(Fr::from(10u64));
+    /// let c = MpcField::<Fr>::Public(Fr::from(42u64));
+    /// 
+    /// let eq_result = a.secure_eq(&b);  // Returns Public(Fr::from(1))
+    /// let neq_result = a.secure_eq(&c); // Returns Public(Fr::from(0))
+    /// ```
+    #[inline]
+    pub fn secure_eq(&self, other: &Self) -> Self {
+        let neq = self.secure_neq(other);
+        match neq {
+            Self::Public(x) => Self::Public(T::one() - x),
+            Self::Shared(x) => {
+                let mut one_share = S::from_public(T::one());
+                one_share.sub(&x);
+                Self::Shared(one_share)
+            }
+        }
+    }
 }
 impl<'a, T: Field, S: FieldShare<T>> MulAssign<&'a MpcField<T, S>> for MpcField<T, S> {
     #[inline]
@@ -582,5 +811,144 @@ mod poly_impl {
                 GeneralEvaluationDomain::new(b.domain.size()).unwrap(),
             )
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ark_bls12_377::Fr;
+    use crate::honest_but_curious::MpcField as HbcMpcField;
+
+    #[test]
+    fn test_secure_neq_public_values() {
+        // Test equality with public values should work
+        // Returns Public(0) for equal, Public(1) for not equal
+        let a = HbcMpcField::<Fr>::Public(Fr::from(42u64));
+        let b = HbcMpcField::<Fr>::Public(Fr::from(42u64));
+        let c = HbcMpcField::<Fr>::Public(Fr::from(10u64));
+
+        let eq_result = a.secure_neq(&b);
+        let neq_result = a.secure_neq(&c);
+        
+        // Check that equal values return 0
+        assert!(matches!(eq_result, HbcMpcField::Public(x) if x == Fr::zero()), 
+                "Same public values should return 0");
+        
+        // Check that not-equal values return 1
+        assert!(matches!(neq_result, HbcMpcField::Public(x) if x == Fr::one()), 
+                "Different public values should return 1");
+    }
+
+    #[test]
+    fn test_secure_eq_public_values() {
+        // Test equality with public values should work
+        // Returns Public(1) for equal, Public(0) for not equal (inverse of secure_neq)
+        let a = HbcMpcField::<Fr>::Public(Fr::from(42u64));
+        let b = HbcMpcField::<Fr>::Public(Fr::from(42u64));
+        let c = HbcMpcField::<Fr>::Public(Fr::from(10u64));
+
+        let eq_result = a.secure_eq(&b);
+        let neq_result = a.secure_eq(&c);
+        
+        // Check that equal values return 1
+        assert!(matches!(eq_result, HbcMpcField::Public(x) if x == Fr::one()), 
+                "Same public values should return 1");
+        
+        // Check that not-equal values return 0
+        assert!(matches!(neq_result, HbcMpcField::Public(x) if x == Fr::zero()), 
+                "Different public values should return 0");
+    }
+
+    #[test]
+    fn test_secure_cmp_public_values() {
+        // Test comparison with public values should work
+        // Returns 1 if a < b, else 0
+        let a = HbcMpcField::<Fr>::Public(Fr::from(10u64));
+        let b = HbcMpcField::<Fr>::Public(Fr::from(42u64));
+        let c = HbcMpcField::<Fr>::Public(Fr::from(10u64));
+
+        // 10 < 42 should return 1
+        let result_ab = a.secure_cmp(&b);
+        assert!(matches!(result_ab, HbcMpcField::Public(x) if x == Fr::one()), "10 < 42 should return 1");
+        
+        // 42 < 10 should return 0
+        let result_ba = b.secure_cmp(&a);
+        assert!(matches!(result_ba, HbcMpcField::Public(x) if x == Fr::zero()), "42 >= 10 should return 0");
+        
+        // 10 < 10 should return 0
+        let result_ac = a.secure_cmp(&c);
+        assert!(matches!(result_ac, HbcMpcField::Public(x) if x == Fr::zero()), "10 >= 10 should return 0");
+    }
+
+    #[test]
+    #[ignore] // Requires MPC network setup
+    fn test_secure_neq_shared_values() {
+        use crate::share::add::AdditiveFieldShare;
+        
+        // Test that comparing shared values doesn't panic
+        // Note: This test requires proper MPC network setup to run
+        let a = HbcMpcField::<Fr>::Shared(AdditiveFieldShare::from_add_shared(Fr::from(42u64)));
+        let b = HbcMpcField::<Fr>::Shared(AdditiveFieldShare::from_add_shared(Fr::from(42u64)));
+        
+        // This should return a Shared result without panicking
+        let result = a.secure_neq(&b);
+        
+        // Verify it returns a Shared value
+        assert!(matches!(result, HbcMpcField::Shared(_)), 
+                "secure_neq on shared values should return Shared");
+    }
+
+    #[test]
+    #[ignore] // Requires MPC network setup
+    fn test_secure_cmp_shared_values() {
+        use crate::share::add::AdditiveFieldShare;
+        
+        // Test that comparing shared values works
+        // Note: This test requires proper MPC network setup to run
+        let a = HbcMpcField::<Fr>::Shared(AdditiveFieldShare::from_add_shared(Fr::from(10u64)));
+        let b = HbcMpcField::<Fr>::Shared(AdditiveFieldShare::from_add_shared(Fr::from(42u64)));
+        
+        // This should work now with the implementation
+        let result = a.secure_cmp(&b);
+        
+        // In a real MPC setting, this would compute the comparison securely
+        // The result should be a Shared value (0 or 1)
+        assert!(matches!(result, HbcMpcField::Shared(_)),
+                "secure_cmp on shared values should return Shared");
+    }
+
+    #[test]
+    #[ignore] // Requires MPC network setup
+    fn test_secure_neq_heterogeneous() {
+        use crate::share::add::AdditiveFieldShare;
+        
+        // Test that comparing public with shared works by converting to shared
+        let a_pub = HbcMpcField::<Fr>::Public(Fr::from(42u64));
+        let b_shared = HbcMpcField::<Fr>::Shared(AdditiveFieldShare::from_add_shared(Fr::from(42u64)));
+        
+        // This should work now by converting public to shared
+        let result = a_pub.secure_neq(&b_shared);
+        
+        // Verify it returns a Shared value
+        assert!(matches!(result, HbcMpcField::Shared(_)), 
+                "secure_neq on heterogeneous values (Public, Shared) should return Shared");
+    }
+
+    #[test]
+    #[ignore] // Requires MPC network setup
+    fn test_secure_cmp_heterogeneous() {
+        use crate::share::add::AdditiveFieldShare;
+        
+        // Test that comparing public with shared works by converting to shared
+        let a_pub = HbcMpcField::<Fr>::Public(Fr::from(10u64));
+        let b_shared = HbcMpcField::<Fr>::Shared(AdditiveFieldShare::from_add_shared(Fr::from(42u64)));
+        
+        // This should work now by converting public to shared
+        let result = a_pub.secure_cmp(&b_shared);
+        
+        // Verify it returns a Shared value
+        assert!(matches!(result, HbcMpcField::Shared(_)),
+                "secure_cmp on heterogeneous values (Public, Shared) should return Shared");
     }
 }

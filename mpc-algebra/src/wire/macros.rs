@@ -9,6 +9,17 @@ use std::fmt::Display;
 
 #[track_caller]
 /// Checks that both sides of the channel have the same value.
+///
+/// This function performs consistency checks to ensure that all parties in the MPC protocol
+/// have the same value. The behavior depends on the network initialization state:
+///
+/// - If two-party network is initialized: exchanges values with the other party
+/// - If multi-party network is initialized: broadcasts value to all parties
+/// - If no network is initialized (e.g., unit tests with Public values): skips check
+///
+/// Note: Skipping the check when no network is initialized is safe because it only happens
+/// when using MpcField::Public in a non-MPC context (e.g., unit tests). In actual MPC
+/// operations, the network is always initialized and checks are performed.
 pub fn check_eq<T: CanonicalSerialize + CanonicalDeserialize + Clone + Eq + Display>(t: T) {
     debug_assert!({
         use log::debug;
@@ -21,8 +32,10 @@ pub fn check_eq<T: CanonicalSerialize + CanonicalDeserialize + Clone + Eq + Disp
                 println!("\nConsistency check failed\n{}\nvs\n{}", t, other);
                 false
             }
-        } else {
-            debug!("Consistency check");
+        } else if mpc_net::MpcMultiNet::n_parties() > 0 {
+            // Note: somehow, the return value of `mpc_net::MpcMultiNet::is_init()` is not consistent among parties.
+            // Therefore, we use `n_parties() > 0` to determine if the code is running in a multi-party MPC context.
+            debug!("Consistency check (multi-party)");
             let others = mpc_net::MpcMultiNet::broadcast(&t);
             let mut result = true;
             for (i, other_t) in others.iter().enumerate() {
@@ -33,6 +46,15 @@ pub fn check_eq<T: CanonicalSerialize + CanonicalDeserialize + Clone + Eq + Disp
                 }
             }
             result
+        } else {
+            // No MPC network initialized - skip consistency check.
+            // This path is taken when using MpcField::Public in unit tests or other
+            // non-networked contexts. It's safe to skip because:
+            // 1. Public values don't require secret sharing or consistency checks
+            // 2. In actual MPC operations, the network is always initialized first
+            // 3. This enables testing MPC-compatible code without network setup
+            debug!("Consistency check skipped (no MPC network initialized)");
+            true
         }
     })
 }

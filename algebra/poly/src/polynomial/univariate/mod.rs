@@ -138,6 +138,9 @@ impl<'a, F: Field> DenseOrSparsePolynomial<'a, F> {
         assert!(!divisor.is_shared());
         let dividend_shared = self_.is_shared();
         if dividend_shared {
+            // Lemma 2. For any shared polynomial [f(X)] and public polynomial d(X), if each party P_i computes q(i), r(i) ← f(i)/d, then q(i) and r(i) are shares of q and r such that (q, r) = f/d.  
+            // Proof: https://www.usenix.org/system/files/sec22fall_ozdemir.pdf
+
             assert!(F::has_univariate_div_qr(), "No poly share division alg");
             F::univariate_div_qr(self.clone().into(), divisor.clone().into())
                 .map(|(a, b)| (a.into(), b.into()))
@@ -150,6 +153,7 @@ impl<'a, F: Field> DenseOrSparsePolynomial<'a, F> {
                 Some((DensePolynomial::zero(), self_.clone().into()))
             } else {
                 // Now we know that self.degree() >= divisor.degree();
+
                 let mut quotient = vec![F::zero(); self_.degree() - divisor.degree() + 1];
                 let mut remainder: DensePolynomial<F> = self_.clone().into();
                 // Can unwrap here because we know self is not zero.

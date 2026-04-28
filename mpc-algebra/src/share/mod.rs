@@ -11,6 +11,8 @@ pub mod spdz;
 pub use spdz::*;
 pub mod gsz20;
 pub use gsz20::*;
+pub mod bit_ops;
+pub use bit_ops::*;
 
 use std::marker::PhantomData;
 use derivative::Derivative;

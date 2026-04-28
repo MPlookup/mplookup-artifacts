@@ -40,19 +40,24 @@ impl<F: Field> AdditiveFieldShare<F> {
     fn poly_share<'a>(
         p: DenseOrSparsePolynomial<Self>,
     ) -> ark_poly::univariate::DenseOrSparsePolynomial<'a, F> {
-        match p {
-            Ok(p) => ark_poly::univariate::DenseOrSparsePolynomial::DPolynomial(Cow::Owned(
-                Self::d_poly_share(p),
-            )),
+        let result = match p {
+            Ok(p) => {
+                let shared = Self::d_poly_share(p);
+                ark_poly::univariate::DenseOrSparsePolynomial::DPolynomial(Cow::Owned(shared))
+            },
             Err(p) => ark_poly::univariate::DenseOrSparsePolynomial::SPolynomial(Cow::Owned(
                 Self::s_poly_share(p),
             )),
-        }
+        };
+        
+        result
     }
     fn d_poly_share(p: DensePolynomial<Self>) -> ark_poly::univariate::DensePolynomial<F> {
-        ark_poly::univariate::DensePolynomial::from_coefficients_vec(
-            p.into_iter().map(|s| s.val).collect(),
-        )
+        // Extract local shares WITHOUT trimming trailing zeros
+        // This is critical for MPC: even if all local shares are zero on one party,
+        // we must preserve the polynomial structure so both parties divide the same degree polynomial
+        let coeffs: Vec<F> = p.into_iter().map(|s| s.val).collect();
+        ark_poly::univariate::DensePolynomial { coeffs }
     }
     fn s_poly_share(p: SparsePolynomial<Self>) -> ark_poly::univariate::SparsePolynomial<F> {
         ark_poly::univariate::SparsePolynomial::from_coefficients_vec(
@@ -83,7 +88,14 @@ impl<F: Field> Reveal for AdditiveFieldShare<F> {
     type Base = F;
 
     fn reveal(self) -> F {
-        Net::broadcast(&self.val).into_iter().sum()
+        let broadcast_results = Net::broadcast(&self.val);
+        // Fix for single-party mode: if broadcast returns empty (no network users),
+        // return the local value directly instead of summing empty iterator (which gives 0)
+        if broadcast_results.is_empty() {
+            self.val
+        } else {
+            broadcast_results.into_iter().sum()
+        }
     }
     fn from_public(f: F) -> Self {
         Self {
@@ -149,10 +161,46 @@ impl<F: Field> FieldShare<F> for AdditiveFieldShare<F> {
         num: DenseOrSparsePolynomial<Self>,
         den: DenseOrSparsePolynomial<F>,
     ) -> Option<(DensePolynomial<Self>, DensePolynomial<Self>)> {
+        use ark_poly::Polynomial;
+        
         let num = Self::poly_share(num);
         let den = Self::poly_share2(den);
-        num.divide_with_q_and_r(&den)
-            .map(|(q, r)| (Self::d_poly_unshare(q), Self::d_poly_unshare(r)))
+        
+        // Each party computes division on their local shares
+        let result = num.divide_with_q_and_r(&den)?;
+        let (mut quotient, mut remainder) = result;
+        
+        // Synchronize degrees across parties using king-share
+        // Each party computes degree from their local shares
+        let local_quotient_degree = if quotient.coeffs.is_empty() { 0 } else { quotient.coeffs.len() - 1 };
+        let local_remainder_degree = if remainder.coeffs.is_empty() { 0 } else { remainder.coeffs.len() - 1 };
+        
+        // King collects degrees from all parties and distributes the maximum to all parties
+        let max_degrees = if Net::am_king() {
+            let all_q_degrees = Net::broadcast(&local_quotient_degree);
+            let all_r_degrees = Net::broadcast(&local_remainder_degree);
+            let max_q = all_q_degrees.iter().chain(std::iter::once(&local_quotient_degree)).max().cloned().unwrap();
+            let max_r = all_r_degrees.iter().chain(std::iter::once(&local_remainder_degree)).max().cloned().unwrap();
+            // Send same max degrees to all parties
+            Some(vec![vec![max_q, max_r]; Net::n_parties()])
+        } else {
+            Net::broadcast(&local_quotient_degree);
+            Net::broadcast(&local_remainder_degree);
+            None
+        };
+        let degrees_vec = Net::recv_from_king(max_degrees);
+        let max_quotient_degree = degrees_vec[0];
+        let max_remainder_degree = degrees_vec[1];
+        
+        // Pad coefficients to match the maximum degree
+        while quotient.coeffs.len() <= max_quotient_degree {
+            quotient.coeffs.push(F::zero());
+        }
+        while remainder.coeffs.len() <= max_remainder_degree {
+            remainder.coeffs.push(F::zero());
+        }
+        
+        Some((Self::d_poly_unshare(quotient), Self::d_poly_unshare(remainder)))
     }
 }
 
@@ -176,7 +224,14 @@ impl<G: Group, M> Reveal for AdditiveGroupShare<G, M> {
     type Base = G;
 
     fn reveal(self) -> G {
-        Net::broadcast(&self.val).into_iter().sum()
+        let broadcast_results = Net::broadcast(&self.val);
+        // Fix for single-party mode: if broadcast returns empty (no network users),
+        // return the local value directly instead of summing empty iterator (which gives 0)
+        if broadcast_results.is_empty() {
+            self.val
+        } else {
+            broadcast_results.into_iter().sum()
+        }
     }
     fn from_public(f: G) -> Self {
         Self {
