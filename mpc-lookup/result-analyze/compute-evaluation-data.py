@@ -303,7 +303,7 @@ def main():
     print()
     print(r"\subsection{RQ3: Scaling with the Number of Parties}")
     print()
-    print(f"Figure~\\ref{{fig:rq3_parties}} shows preprocessing time at $N=1{{,}}024$, $M=512$: from ${tex_n(base_time)}$\\,s for 2 parties to {oxford_join(times_tex)}---speedups of {oxford_join(speedups_tex)} over the 2-party baseline.")
+    print(f"Figure~\\ref{{fig:rq3_parties}} shows preprocessing time at $N=1{{,}}024$, $M=512$: from ${tex_n(base_time)}$\\,s for 2 parties to {oxford_join(times_tex)}---slowdowns of {oxford_join(speedups_tex)} over the 2-party baseline.")
     print(r"Figure~\ref{fig:rq3_comm} shows bytes sent scales similarly to time, while broadcast count remains constant across party counts, consistent with the communication structure.")
     print()
     print(f"In Figure~\\ref{{fig:rq3_phases}}, the setup time and verification time remain stable because they are single-user protocols, while $\\Pi_\\textrm{{PermVanish}}$ grows from ${pg_2:.1f}$\\,s at 2 parties to ${pg_16:.1f}$\\,s at 16 parties as additional parties require more collaborative KZG commitment rounds.")
