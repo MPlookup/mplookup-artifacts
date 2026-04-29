@@ -307,8 +307,8 @@ def _panel_b_comm_metrics(ax, new_ns, new_bytes, common_ns, naive_bytes, new_bc,
     ax2.yaxis.set_minor_locator(ticker.NullLocator())
 
     ax.legend([l1, l2, l3, l4], [l.get_label() for l in [l1, l2, l3, l4]],
-              fontsize=6, loc='upper left', ncol=1,
-              bbox_to_anchor=(0.01, 0.85), bbox_transform=ax.transAxes)
+              fontsize=7, loc='upper left', ncol=1,
+              bbox_to_anchor=(0.01, 0.885), bbox_transform=ax.transAxes)
     ax.grid(True, alpha=0.3)
     set_pow2_xticks(ax, new_ns)
 
@@ -316,7 +316,7 @@ def _panel_b_comm_metrics(ax, new_ns, new_bytes, common_ns, naive_bytes, new_bc,
 def _panel_c_speedup(ax, common_ns, speedup_mpc, speedup_bytes, speedup_bc):
     """(c) Speedup of MPlookup over Strawman."""
     ax.plot(common_ns, speedup_mpc,   'o-',  color='steelblue',  linewidth=1.5, markersize=4,
-        label='Time cost', alpha=TRANSPARENCY)
+        label='Time', alpha=TRANSPARENCY)
     ax.plot(common_ns, speedup_bytes, 's--', color='darkorange', linewidth=1.5, markersize=4,
         label='Bytes Sent', alpha=TRANSPARENCY)
     ax.plot(common_ns, speedup_bc,    '^:',  color='green',      linewidth=1.5, markersize=4,
@@ -371,7 +371,7 @@ def _panel_e_step_abs(ax, plot_ns, step_data, step_nums, colors_steps):
     ax.set_xscale('log')
     ax.set_yscale('log')
     ax.set_xlabel('Input table size', fontsize=9)
-    ax.set_ylabel('Step Time (s)', fontsize=9)
+    ax.set_ylabel('Time (s)', fontsize=9)
     ax.xaxis.set_minor_locator(ticker.NullLocator())
     ax.yaxis.set_minor_locator(ticker.NullLocator())
     ax.grid(True, which='both', alpha=0.3)
@@ -406,13 +406,23 @@ def _panel_f_party_time(ax, parties, total_times):
     ax.set_xscale('log')
     ax.set_yscale('log')
     ax.set_xlabel('Number of Parties', fontsize=9)
-    ax.set_ylabel('Preprocess Time (s)', fontsize=9)
+    ax.set_ylabel('Time (s)', fontsize=9)
     ax.set_xticks(parties)
     ax.xaxis.set_major_formatter(ticker.FixedFormatter([str(p) for p in parties]))
     ax.xaxis.set_minor_locator(ticker.NullLocator())
-    # Set y-ticks at the 3 data values so all points have a tick label.
-    ax.set_yticks(total_times)
-    ax.yaxis.set_major_formatter(_SCI_FORMATTER)
+
+    ## Set y-ticks at the 3 data values so all points have a tick label.
+    # ax.set_yticks(total_times)
+    # ax.yaxis.set_major_formatter(_SCI_FORMATTER)
+    
+    # Set y-ticks at nice round numbers
+    min_total_times = min(t for t in total_times if t > 0)
+    max_total_times = max(total_times)
+    # round min to 1 * 10^k and max to 10 * 10^k for some integer k, so that the y-axis range is a nice round number.
+    exp_min = int(np.floor(np.log10(min_total_times)))
+    exp_max = int(np.ceil(np.log10(max_total_times)))
+    ax.set_yticks([10 ** exp_min, 10 ** ((exp_min + exp_max) // 2), 10 ** exp_max])
+
     ax.yaxis.set_minor_locator(ticker.NullLocator())
     ax.grid(True, which='both', alpha=0.3)
     ax.tick_params(labelsize=8)
@@ -429,9 +439,17 @@ def _panel_g_party_comm(ax, parties, bytes_vals, bc_vals):
     ax.set_xticks(parties)
     ax.xaxis.set_major_formatter(ticker.FixedFormatter([str(p) for p in parties]))
     ax.xaxis.set_minor_locator(ticker.NullLocator())
-    # Set y-ticks at the 3 data values; suppress auto-generated log ticks.
-    ax.set_yticks(bytes_vals)
-    ax.yaxis.set_major_formatter(_SCI_FORMATTER)
+    ## Set y-ticks at the 3 data values; suppress auto-generated log ticks.
+    # ax.set_yticks(bytes_vals)
+    # ax.yaxis.set_major_formatter(_SCI_FORMATTER)
+
+    # Set y-ticks at nice round numbers
+    min_bytes = min(b for b in bytes_vals if b > 0)
+    max_bytes = max(bytes_vals)
+    exp_min = int(np.floor(np.log10(min_bytes)))
+    exp_max = int(np.ceil(np.log10(max_bytes)))
+    ax.set_yticks([10 ** exp_min, 10 ** ((exp_min + exp_max) // 2), 10 ** exp_max])
+
     ax.yaxis.set_minor_locator(ticker.NullLocator())
     ax.tick_params(axis='y', labelcolor='steelblue', labelsize=8)
     ax.tick_params(axis='x', labelsize=8)
@@ -444,18 +462,80 @@ def _panel_g_party_comm(ax, parties, bytes_vals, bc_vals):
     l2, = ax2.plot(parties, bc_vals, f'{'^'}--', color='coral',
                    linewidth=1.5, markersize=5, label='Broadcasts', alpha=TRANSPARENCY)
     ax2.set_ylabel('Broadcasts', fontsize=9, color='coral')
-    ax2.set_yticks(sorted(set(bc_vals)))
-    ax2.yaxis.set_major_formatter(_SCI_FORMATTER)
+    
+    ## Set y-ticks at the 3 data values; suppress auto-generated log ticks.
+    # ax2.set_yticks(sorted(set(bc_vals)))
+    # ax2.yaxis.set_major_formatter(_SCI_FORMATTER)
+
+    # Set y-ticks at nice round numbers
+    min_bc = min(b for b in bc_vals if b > 0)
+    max_bc = max(bc_vals)
+    exp_min = int(np.floor(np.log10(min_bc)))
+    exp_max = int(np.ceil(np.log10(max_bc)))
+    ax2.set_yticks([10 ** exp_min, 10 ** ((exp_min + exp_max) // 2), 10 ** exp_max])
+
     ax2.yaxis.set_minor_locator(ticker.NullLocator())
     ax2.tick_params(axis='y', labelcolor='coral', labelsize=8)
 
     # adjust the label location according to the drawing result!
-    ax2.yaxis.set_label_coords(1.02, 0.5)
+    ax2.yaxis.set_label_coords(1.05, 0.5)
 
     ax.legend([l1, l2], [l1.get_label(), l2.get_label()],
               fontsize=7, loc='upper left', bbox_to_anchor=(0.01, 0.80),
               bbox_transform=ax.transAxes)
     ax.grid(True, which='both', alpha=0.3)
+
+
+def _panel_i_nlogn_verify(ax, plot_ns, step_data, step_nums, colors_steps):
+    """(i) Empirical O(N log²N) complexity check for the O(N log²N) preprocessing steps.
+
+    Plots T_step(N) / (N · log₂²(N)) vs N for the four oblivious-sort steps
+    (S1, S6, S7, S8) and Step 4 (multi-point polynomial evaluation), which are
+    the steps theoretically expected to be O(N log²N).
+    A horizontal (constant) profile confirms O(N log²N) scaling.
+    """
+    # Only the steps whose theoretical complexity is O(N log²N)
+    NLOGN_STEPS = {1, 4, 6, 7, 8}
+
+    ns_arr  = np.array(plot_ns, dtype=float)
+    log2_sq = np.log2(ns_arr) ** 2          # log₂²(N) at each data point
+    # Exclude any N ≤ 1 where log₂(N) = 0 to avoid division by zero
+    denom_valid = log2_sq > 0
+
+    markers = ['o', 's', '^', 'D', 'x', 'v', 'p', '*', 'h']
+    for j, snum in enumerate(step_nums):
+        if snum not in NLOGN_STEPS:
+            continue
+        t     = step_data[:, j]
+        valid = (t > 0) & denom_valid
+        if not valid.any():
+            continue
+        y = t[valid] / (ns_arr[valid] * log2_sq[valid])
+        ax.plot(ns_arr[valid], y,
+                marker=markers[j % len(markers)],
+                color=colors_steps[j],
+                linewidth=1.5, markersize=4, alpha=TRANSPARENCY,
+                label=STEP_TINY_LABELS.get(snum, f'S{snum}'))
+
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_xlabel('Input table size', fontsize=9)
+    ax.set_ylabel(r'Time $/ (N\log^2 N)$  (s)', fontsize=9)
+    ax.xaxis.set_minor_locator(ticker.NullLocator())
+    ax.yaxis.set_minor_locator(ticker.NullLocator())
+    ax.grid(True, which='both', alpha=0.3)
+    set_pow2_xticks_all(ax, plot_ns)
+    ax.tick_params(labelsize=8)
+
+    # Legend: all 5 steps fit in one row
+    handles, labels = ax.get_legend_handles_labels()
+    leg = ax.legend(handles, labels, fontsize=7, ncol=len(handles),
+        handlelength=0.8, handletextpad=0.3,
+        columnspacing=0.5, borderpad=0.4, labelspacing=0.2,
+        loc='upper left', bbox_to_anchor=(0.005, 0.60),
+        bbox_transform=ax.transAxes)
+    for handle in leg.legend_handles:
+        handle.set_linewidth(0)
 
 
 def _panel_h_party_proof(ax, parties, t_setup, t_preproc, t_permvan, t_verify):
@@ -487,7 +567,6 @@ def _panel_h_party_proof(ax, parties, t_setup, t_preproc, t_permvan, t_verify):
 # Generate the 8 panel PDFs for LaTeX figure* inclusion
 # ---------------------------------------------------------------------------
 
-PANEL_SIZE = (3.0, 2.4)    # 1.5× width, 1.2× height (uniform for all 8 panels)
 PANEL_PAD  = 0.4           # tight_layout pad
 
 
@@ -541,8 +620,8 @@ def fig_main_evaluation(new_results, naive_results, n_target=1024):
     p_verify  = [party_results[p].get('proof_ver',    float('nan')) for p in parties]
 
     # ------------------------------------------------------------------ save
-    def _save(name, draw_fn, *args, **kwargs):
-        fig, ax = plt.subplots(figsize=PANEL_SIZE)
+    def _save(name, figsize, draw_fn, *args, **kwargs):
+        fig, ax = plt.subplots(figsize=figsize)
         draw_fn(ax, *args, **kwargs)
         plt.tight_layout(pad=PANEL_PAD)
         extension = 'pgf' if SAVE_FIG_FORMAT == 'pgf' else SAVE_FIG_FORMAT
@@ -550,14 +629,15 @@ def fig_main_evaluation(new_results, naive_results, n_target=1024):
         plt.close()
         print(f"Saved {name}.{extension}")
 
-    _save('panel_a', _panel_a_preproc_time, new_ns, new_times, common_ns, naive_times)
-    _save('panel_b', _panel_b_comm_metrics, new_ns, new_bytes, common_ns, naive_bytes, new_bc, naive_bc)
-    _save('panel_c', _panel_c_speedup, common_ns, speedup_mpc, speedup_bytes, speedup_bc)
-    _save('panel_d', _panel_d_proof_vs_n, proof_ns, t_setup, t_preproc, t_permvan, t_verify)
-    _save('panel_e', _panel_e_step_abs, plot_ns_steps, step_data, step_nums, colors_steps)
-    _save('panel_f', _panel_f_party_time, parties, p_times)
-    _save('panel_g', _panel_g_party_comm, parties, p_bytes, p_bc)
-    _save('panel_h', _panel_h_party_proof, parties, p_setup, p_preproc, p_permvan, p_verify)
+    _save('panel_a', (3.0, 2.4), _panel_a_preproc_time, new_ns, new_times, common_ns, naive_times)
+    _save('panel_b', (3.0, 2.4), _panel_b_comm_metrics, new_ns, new_bytes, common_ns, naive_bytes, new_bc, naive_bc)
+    _save('panel_c', (3.0, 2.4), _panel_c_speedup, common_ns, speedup_mpc, speedup_bytes, speedup_bc)
+    _save('panel_d', (3.0, 2.4), _panel_d_proof_vs_n, proof_ns, t_setup, t_preproc, t_permvan, t_verify)
+    _save('panel_e', (3.0, 2.4), _panel_e_step_abs, plot_ns_steps, step_data, step_nums, colors_steps)
+    _save('panel_i', (3.0, 2.4), _panel_i_nlogn_verify, plot_ns_steps, step_data, step_nums, colors_steps)
+    _save('panel_f', (3.0, 2.4), _panel_f_party_time, parties, p_times)
+    _save('panel_g', (3.0, 2.4), _panel_g_party_comm, parties, p_bytes, p_bc)
+    _save('panel_h', (3.0, 2.4), _panel_h_party_proof, parties, p_setup, p_preproc, p_permvan, p_verify)
 
 
 # ---------------------------------------------------------------------------

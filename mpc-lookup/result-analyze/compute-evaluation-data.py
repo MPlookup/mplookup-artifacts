@@ -1,14 +1,16 @@
 """
-compute_paper_stats.py
-======================
-Computes and prints every in-text numerical value used in the evaluation
-section (§ "Implementation and Evaluation") of the paper.
+compute-evaluation-data.py
+==========================
+Reproduces the full text of the "Implementation and Evaluation" section of the
+paper, with every numerical value computed directly from the raw experiment
+result files.
 
 Run from any directory:
-    python ref/experiments/result-analyze/compute_paper_stats.py
+    python ref/experiments/result-analyze/compute-evaluation-data.py
 
-Output is grouped by research question and labelled to match the exact
-sentence in the TeX file where each number appears.
+The output is the evaluation section paragraphs in LaTeX source form, with all
+numbers derived from the data.  The output should be identical to the
+corresponding passages in mplookup.tex.
 """
 
 import re
@@ -139,26 +141,12 @@ def load_multi_party_results(n_target=1024):
                 party_results[parties] = data
     return party_results
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 def pct(num, denom):
     return 100.0 * num / denom
-
-
-def fmt_int(x):
-    """Format integer with comma thousands separator."""
-    return f"{int(round(x)):,}"
-
-
-def fmt_1f(x):
-    return f"{x:.1f}"
-
-
-def fmt_2f(x):
-    return f"{x:.2f}"
 
 
 def theoretical_doubling_ratio(n):
@@ -175,214 +163,155 @@ def main():
     new_results, naive_results = load_2party_results()
     party_results = load_multi_party_results(n_target=1024)
 
-    common_ns = sorted(set(new_results) & set(naive_results))
-    new_ns    = sorted(new_results.keys())
+    common_ns      = sorted(set(new_results) & set(naive_results))
+    new_ns         = sorted(new_results.keys())
+    parties_sorted = sorted(party_results.keys())
 
-    print("=" * 70)
-    print("PAPER STATS — all values used in the evaluation section")
-    print("=" * 70)
+    # ------------------------------------------------------------------
+    # TeX formatting helpers
+    # ------------------------------------------------------------------
 
-    # -----------------------------------------------------------------------
-    # RQ1 — Crossover between Strawman and MPlookup
-    # -----------------------------------------------------------------------
-    print("\n--- RQ1: Scalability and Comparison against the Strawman ---\n")
+    def tex_n(n):
+        """Return integer/float as LaTeX with comma-thousands separators.
 
-    # Strawman-to-MPlookup time ratio at each common n (ratio < 1 → Strawman faster)
-    print("Time ratio (Strawman / MPlookup) at each n:")
-    crossover_n = None
-    for n in common_ns:
-        ratio = naive_results[n]['naive_mpc_perm_time'] / new_results[n]['mpc_perm_time']
-        marker = " ← crossover" if crossover_n is None and ratio > 1.0 else ""
-        if crossover_n is None and ratio > 1.0:
-            crossover_n = n
-        print(f"  n={n:6d}:  Strawman/MPlookup = {ratio:.4f}x{marker}")
+        e.g. 8192 → '8{,}192'
+        """
+        return f"{int(round(n)):,}".replace(',', '{,}')
 
-    # Specific crossover sentences
-    n_below = common_ns[common_ns.index(crossover_n) - 1] if crossover_n else None
-    if n_below:
-        r_below = naive_results[n_below]['naive_mpc_perm_time'] / new_results[n_below]['mpc_perm_time']
-        r_cross = naive_results[crossover_n]['naive_mpc_perm_time'] / new_results[crossover_n]['mpc_perm_time']
-        print(f"\nTeX sentence: crossover between n={n_below:,} and n={crossover_n:,}")
-        print(f"  At n={n_below:,}: Strawman is {r_below:.2f}× the time of MPlookup  (TEX: ${{0:.2f}}\\times$)")
-        print(f"  At n={crossover_n:,}: MPlookup is {r_cross:.2f}× faster             (TEX: ${{0:.2f}}\\times$)")
+    def oxford_join(items):
+        """Join a list with Oxford comma: ['A','B','C'] → 'A, B, and C'."""
+        if len(items) == 1:
+            return items[0]
+        if len(items) == 2:
+            return f"{items[0]} and {items[1]}"
+        return ', '.join(items[:-1]) + f", and {items[-1]}"
 
-    # At n=8192
-    n_highlight = 8192
-    if n_highlight in new_results and n_highlight in naive_results:
-        t_new   = new_results[n_highlight]['mpc_perm_time']
-        t_naive = naive_results[n_highlight]['naive_mpc_perm_time']
-        sp      = t_naive / t_new
-        print(f"\nTeX sentence: At n={n_highlight:,}")
-        print(f"  MPlookup time : {fmt_int(t_new)} s    (TEX: ${fmt_int(t_new)}$\\,s)")
-        print(f"  Strawman time : {fmt_int(t_naive)} s  (TEX: ${fmt_int(t_naive)}$\\,s)")
-        print(f"  Speedup       : {sp:.2f}×            (TEX: ${fmt_2f(sp)}\\times$)")
+    # ------------------------------------------------------------------
+    # RQ1 — crossover, speedup, doubling ratios, bytes, broadcasts
+    # ------------------------------------------------------------------
 
-    # Doubling ratios for MPlookup (consecutive doublings across all available n)
-    mplookup_sorted_ns = [n for n in new_ns if n >= 1024]
-    print(f"\nMPlookup doubling ratios (observed vs theoretical) for n >= 1024:")
-    doubling_data = []
-    for i in range(len(mplookup_sorted_ns) - 1):
-        n0 = mplookup_sorted_ns[i]
-        n1 = mplookup_sorted_ns[i + 1]
-        if n1 != 2 * n0:
-            continue
-        obs  = new_results[n1]['mpc_perm_time'] / new_results[n0]['mpc_perm_time']
-        theo = theoretical_doubling_ratio(n0)
-        doubling_data.append((n0, n1, obs, theo))
-        print(f"  n={n0:6d}→{n1:6d}: observed={obs:.2f}×  theoretical={theo:.2f}×")
+    # First N where MPlookup is faster than Strawman
+    crossover_n, crossover_n_below = None, None
+    for i, n in enumerate(common_ns):
+        if naive_results[n]['naive_mpc_perm_time'] / new_results[n]['mpc_perm_time'] > 1.0:
+            crossover_n       = n
+            crossover_n_below = common_ns[i - 1] if i > 0 else None
+            break
 
-    # Pick the 3 doublings that the TeX sentence refers to.
-    # The sentence says "from n=4096 to 16384" with 3 values — but that range
-    # only has 2 doublings.  The data most naturally covering 3 doublings is
-    # n=2048→4096→8192→16384.  We report that range (and note it in the output).
-    trio_start = 2048
-    trio = [(n0, n1, obs, theo) for (n0, n1, obs, theo) in doubling_data
-            if n0 >= trio_start and n1 <= 16384]
-    if len(trio) == 3:
-        obs_vals  = [f"{obs:.2f}\\times" for _, _, obs, _ in trio]
-        theo_vals = [f"{theo:.2f}\\times" for _, _, _, theo in trio]
-        n_start = trio[0][0]
-        n_end   = trio[-1][1]
-        print(f"\nTeX sentence (3 doublings, n={n_start:,}→{n_end:,}):")
-        print(f"  Observed  : {', '.join(obs_vals)}")
-        print(f"  Theoretical: {', '.join(theo_vals)}")
-        print(f"  (Update TeX range to 'from $n = {fmt_int(n_start)}$ to ${fmt_int(n_end)}$')")
-    elif len(trio) != 3:
-        print(f"\nWARNING: found {len(trio)} doublings in n={trio_start:,}–16384 (expected 3); adjust manually.")
-        for n0, n1, obs, theo in trio:
-            print(f"  n={n0}→{n1}: obs={obs:.2f} theo={theo:.2f}")
+    n_hi       = 8192
+    t_new_hi   = new_results[n_hi]['mpc_perm_time']
+    t_naive_hi = naive_results[n_hi]['naive_mpc_perm_time']
+    speedup_hi = t_naive_hi / t_new_hi
 
-    # Bytes-sent speedup at n=8192
-    if n_highlight in new_results and n_highlight in naive_results:
-        bs_speedup = naive_results[n_highlight]['bytes_sent'] / new_results[n_highlight]['bytes_sent']
-        print(f"\nTeX sentence: bytes speedup at n={n_highlight:,}")
-        print(f"  Strawman bytes_sent : {naive_results[n_highlight]['bytes_sent']:,}")
-        print(f"  MPlookup bytes_sent : {new_results[n_highlight]['bytes_sent']:,}")
-        print(f"  Speedup             : {bs_speedup:.1f}×   (TEX: approximately ${bs_speedup:.0f}\\times$)")
+    # Three consecutive doublings: 2048 → 4096 → 8192 → 16384
+    trio_ns     = [2048, 4096, 8192, 16384]
+    obs_ratios  = [new_results[trio_ns[i + 1]]['mpc_perm_time'] /
+                   new_results[trio_ns[i]]['mpc_perm_time']
+                   for i in range(len(trio_ns) - 1)]
+    theo_ratios = [theoretical_doubling_ratio(trio_ns[i])
+                   for i in range(len(trio_ns) - 1)]
 
-    # Broadcast crossover (first n where MPlookup broadcasts < Strawman broadcasts)
-    print(f"\nBroadcast crossover (first n where MPlookup < Strawman):")
-    for n in common_ns:
-        nb = new_results[n]['broadcasts']
-        sb = naive_results[n]['broadcasts']
-        marker = " ← crossover" if nb < sb else ""
-        print(f"  n={n:6d}: MPlookup={nb:>14,}  Strawman={sb:>14,}{marker}")
+    bs_speedup = (naive_results[n_hi]['bytes_sent'] /
+                  new_results[n_hi]['bytes_sent'])
 
-    # PermVanish share of total time (max across all n)
-    print(f"\nPermVanish (proof_gen) as % of total (mpc_perm_time + proof_gen), all n:")
-    max_pct = 0.0
+    # First N where MPlookup issues fewer broadcasts than Strawman
+    bc_crossover_n = next(
+        (n for n in common_ns
+         if new_results[n]['broadcasts'] < naive_results[n]['broadcasts']),
+        None)
+
+    # ------------------------------------------------------------------
+    # RQ2 — proof-phase breakdown
+    # ------------------------------------------------------------------
+
+    # Average verification time in ms, rounded to nearest integer
+    ver_ms_vals   = [new_results[n]['proof_ver'] * 1000
+                     for n in new_ns if 'proof_ver' in new_results[n]]
+    ver_ms_approx = round(sum(ver_ms_vals) / len(ver_ms_vals))
+
+    # Max fraction of total wall-clock time from PermVanish + Setup
+    # (total = Preprocess + PermVanish + Setup + Verify)
+    max_pct_nonpreproc = 0.0
     for n in new_ns:
         d = new_results[n]
-        if 'proof_gen' in d:
-            total = d['mpc_perm_time'] + d['proof_gen']
-            p = pct(d['proof_gen'], total)
-            if p > max_pct:
-                max_pct = p
-            print(f"  n={n:6d}: {p:.4f}%")
-    print(f"  Max across all n: {max_pct:.4f}% → TEX: 'less than {math.ceil(max_pct * 10) / 10:.1f}%'")
-
-    # -----------------------------------------------------------------------
-    # RQ2 — Step breakdown at n=1024 and n=16384
-    # -----------------------------------------------------------------------
-    print("\n--- RQ2: Step-Level Performance Breakdown ---\n")
-
-    sort_steps = {1, 6, 7, 8}  # after merging
-
-    for n_rq2 in [1024, 16384]:
-        if n_rq2 not in new_results or 'steps' not in new_results[n_rq2]:
-            print(f"  n={n_rq2}: step data not available")
+        if 'proof_gen' not in d:
             continue
-        merged = merge_steps(new_results[n_rq2]['steps'])
-        total  = new_results[n_rq2]['mpc_perm_time']
-        sort_t = sum(merged[s]['time'] for s in sort_steps if s in merged)
-        step4_t = merged.get(4, {}).get('time', 0.0)
-        other_t = sum(merged[s]['time'] for s in [2, 3, 5, 9] if s in merged)
+        total = (d['mpc_perm_time']
+                 + d.get('proof_gen',   0.0)
+                 + d.get('proof_setup', 0.0)
+                 + d.get('proof_ver',   0.0))
+        p = pct(d.get('proof_gen', 0.0) + d.get('proof_setup', 0.0), total)
+        max_pct_nonpreproc = max(max_pct_nonpreproc, p)
+    # Round up to one decimal place to get a safe upper-bound claim
+    pct_upper = math.ceil(max_pct_nonpreproc * 10) / 10
 
-        print(f"n = {n_rq2:,} (total mpc_perm_time = {total:.3f} s):")
-        for snum in sorted(merged.keys()):
-            t = merged[snum]['time']
-            print(f"  Step {snum}: {t:>12.3f} s  = {pct(t, total):.2f}%  [{merged[snum]['name']}]")
-        print(f"  Sort steps (1,6,7,8) combined : {sort_t:.3f} s = {pct(sort_t, total):.2f}%")
-        print(f"  Step 4 (poly eval)             : {step4_t:.3f} s = {pct(step4_t, total):.2f}%")
-        print(f"  Steps 2,3,5,9 combined         : {other_t:.3f} s = {pct(other_t, total):.2f}%")
-        print()
+    # ------------------------------------------------------------------
+    # RQ3 — multi-party scaling at N=1024
+    # ------------------------------------------------------------------
 
-    # Step 8 at n=1024
-    if 1024 in new_results and 'steps' in new_results[1024]:
-        merged1024 = merge_steps(new_results[1024]['steps'])
-        total1024  = new_results[1024]['mpc_perm_time']
-        s8_t = merged1024.get(8, {}).get('time', 0.0)
-        print(f"TeX sentence: Step 8 at n=1,024")
-        print(f"  Step 8 time : {s8_t:.3f} s")
-        print(f"  Step 8 share: {pct(s8_t, total1024):.1f}%   (TEX: approximately ${pct(s8_t, total1024):.0f}\\%$)")
+    base_time         = party_results[2]['mpc_perm_time']
+    non_base          = [p for p in parties_sorted if p != 2]
+    non_base_times    = [party_results[p]['mpc_perm_time'] for p in non_base]
+    non_base_speedups = [party_results[p]['mpc_perm_time'] / base_time
+                         for p in non_base]
 
-    # Sort steps min share across all n with step data
-    print(f"\nSort steps (1,6,7,8) share across all n:")
-    for n in sorted(new_results.keys()):
-        if 'steps' not in new_results[n]:
-            continue
-        merged = merge_steps(new_results[n]['steps'])
-        total  = new_results[n]['mpc_perm_time']
-        sort_t = sum(merged[s]['time'] for s in sort_steps if s in merged)
-        print(f"  n={n:6d}: {pct(sort_t, total):.2f}%")
+    pg_2  = party_results[2].get('proof_gen', float('nan'))
+    pg_16 = party_results.get(16, {}).get('proof_gen', float('nan'))
 
-    # Step 4 range
-    print(f"\nStep 4 (poly eval) share across all n:")
-    for n in sorted(new_results.keys()):
-        if 'steps' not in new_results[n]:
-            continue
-        merged = merge_steps(new_results[n]['steps'])
-        total  = new_results[n]['mpc_perm_time']
-        s4_t = merged.get(4, {}).get('time', 0.0)
-        print(f"  n={n:6d}: {pct(s4_t, total):.2f}%")
+    # Pre-build joined TeX fragments
+    obs_str      = ', '.join(f'${r:.2f}\\times$' for r in obs_ratios)
+    theo_str     = ', '.join(f'${r:.2f}\\times$' for r in theo_ratios)
+    times_tex    = [f'${tex_n(t)}$\\,s' for t in non_base_times]
+    speedups_tex = [f'${sp:.1f}\\times$' for sp in non_base_speedups]
 
-    # Steps 2,3,5,9 max share
-    print(f"\nSteps 2,3,5,9 combined share across all n:")
-    max_minor = 0.0
-    for n in sorted(new_results.keys()):
-        if 'steps' not in new_results[n]:
-            continue
-        merged = merge_steps(new_results[n]['steps'])
-        total  = new_results[n]['mpc_perm_time']
-        other_t = sum(merged[s]['time'] for s in [2, 3, 5, 9] if s in merged)
-        p = pct(other_t, total)
-        if p > max_minor:
-            max_minor = p
-        print(f"  n={n:6d}: {p:.4f}%")
-    print(f"  Max: {max_minor:.4f}% → TEX: 'less than {math.ceil(max_minor * 10) / 10:.1f}%'")
+    # ------------------------------------------------------------------
+    # Print evaluation section text
+    # ------------------------------------------------------------------
 
-    # -----------------------------------------------------------------------
-    # RQ3 — Multi-party scaling at n=1024
-    # -----------------------------------------------------------------------
-    print("\n--- RQ3: Scaling with the Number of Parties (n=1024) ---\n")
+    print("=" * 70)
+    print("EVALUATION SECTION — all numbers computed from raw data")
+    print("=" * 70)
 
-    parties_sorted = sorted(party_results.keys())
-    base_time = party_results[2]['mpc_perm_time']
+    # --- RQ1 ---
+    print()
+    print(r"\subsection{RQ1: Scalability and Comparison}")
+    print()
+    print(r"Figures~\ref{fig:rq1_total_time} and~\ref{fig:rq1_comm} plot preprocessing time, bytes sent, and broadcast count.")
+    print(r"We confirm \MPlookup scales as $O(N \log^2 N)$ and the strawman as $O(N^2)$, in agreement with Theorem~\ref{thm:complexity}.")
+    print()
+    print(r"At small $N$, the strawman is faster due to lower constant factors: each iteration uses one $\mathcal{F}_\textrm{Eq}$ call, whereas \MPlookup invokes sorting networks and polynomial arithmetic.")
+    print(f"The crossover lies between $N = {tex_n(crossover_n_below)}$ and $N = {tex_n(crossover_n)}$.")
+    print(f"At $N = {tex_n(n_hi)}$, \\MPlookup achieves a ${speedup_hi:.2f}\\times$ speedup, completing in ${tex_n(t_new_hi)}$\\,s vs.\\ ${tex_n(t_naive_hi)}$\\,s for the strawman.")
+    print(f"From $N = {tex_n(trio_ns[0])}$ to ${tex_n(trio_ns[-1])}$, the observed doubling ratios {obs_str} closely match the theoretical {theo_str}.")
+    print()
+    print(f"Figure~\\ref{{fig:rq1_speedup}} shows speedups in preprocessing time, bytes sent, and broadcast count; the time speedup turns decisively in \\MPlookup's favour beyond $N = {tex_n(crossover_n)}$.")
+    print(f"Communication savings are more pronounced: at $N = {tex_n(n_hi)}$, \\MPlookup sends approximately ${bs_speedup:.0f}\\times$ fewer bytes, as the strawman's $O(N^2)$ equality comparisons each require a full MPC round.")
+    print(f"Broadcast count is higher for \\MPlookup at small $N$ due to sorting and subproduct tree rounds; at $N = {tex_n(bc_crossover_n)}$, \\MPlookup also issues fewer broadcasts.")
 
-    print("Preprocessing time and speedup vs 2-party baseline:")
-    for p in parties_sorted:
-        t = party_results[p]['mpc_perm_time']
-        sp = t / base_time
-        print(f"  {p:2d} parties: {fmt_int(t)} s  (speedup over 2p: {sp:.2f}×)")
+    # --- RQ2 ---
+    print()
+    print(r"\subsection{RQ2: Step-Level Performance Breakdown}")
+    print()
+    print(r"Figure~\ref{fig:rq2_steps} shows the time cost contributed by each of the nine steps of Algorithm~\ref{alg:mplookup-preprocessing} across all tested table sizes.")
+    print(r"Figure~\ref{fig:rq2_nlogn} plots the time cost of each step divided by $N\log^2 N$ for Steps~1, 4, 6, 7, 8. For Steps~1, 6, 7, 8, flat curves confirm $O(N\log^2 N)$ scaling. For Step~4, the line is close to $O(N \log N)$ scaling. This is because both subproduct tree construction ($O(N \log N)$) and multi-point evaluation ($O(N \log^2 N)$) are included in Step~4, and the subproduct tree construction contributes more time cost.")
+    print()
+    print(r"Figure~\ref{fig:rq2_mplookup_phases} breaks down the four phases of \MPlookup, setup, proof generation consisting of $\Pi_\textrm{Preprocess}$ and $\Pi_\textrm{PermVanish}$, and finally verification.")
+    print(f"$\\Pi_\\textrm{{Preprocess}}$ overwhelmingly dominates the total cost across all tested sizes, while verification remains essentially constant at approximately ${ver_ms_approx}$\\,ms regardless of $N$.")
+    print(f"$\\Pi_\\textrm{{PermVanish}}$ and setup both grow with $N$ but contribute less than ${pct_upper:.1f}\\%$ of total time, confirming that preprocessing is the decisive bottleneck.")
 
-    print(f"\nTeX sentence: times and speedups")
-    times_fmt = [f"${fmt_int(party_results[p]['mpc_perm_time'])}$\\,s" for p in parties_sorted]
-    sp_fmt    = [f"${party_results[p]['mpc_perm_time'] / base_time:.1f}\\times$"
-                 for p in parties_sorted if p != 2]
-    print(f"  Times    : {', '.join(times_fmt)}")
-    print(f"  Speedups : {', '.join(sp_fmt)}")
+    # --- RQ3 ---
+    print()
+    print(r"\subsection{RQ3: Scaling with the Number of Parties}")
+    print()
+    print(f"Figure~\\ref{{fig:rq3_parties}} shows preprocessing time at $N=1{{,}}024$, $M=512$: from ${tex_n(base_time)}$\\,s for 2 parties to {oxford_join(times_tex)}---speedups of {oxford_join(speedups_tex)} over the 2-party baseline.")
+    print(r"Figure~\ref{fig:rq3_comm} shows bytes sent scales similarly to time, while broadcast count remains constant across party counts, consistent with the communication structure.")
+    print()
+    print(f"In Figure~\\ref{{fig:rq3_phases}}, the setup time and verification time remain stable because they are single-user protocols, while $\\Pi_\\textrm{{PermVanish}}$ grows from ${pg_2:.1f}$\\,s at 2 parties to ${pg_16:.1f}$\\,s at 16 parties as additional parties require more collaborative KZG commitment rounds.")
+    print()
+    print(r"We note that the evaluation results are measured with \textsf{CompatCircuit} as the ABB, whose $\mathcal{F}_\textrm{LT}$ operation requires $O(\log_2 p)$ sequential communication rounds per comparison over the BLS12-377 scalar field, where $\log_2 p \approx 253$.")
+    print(r"This is the primary source of the large constant factor observed throughout.")
 
-    # PermVanish vs parties
-    print(f"\nPermVanish (proof_gen) across party counts:")
-    for p in parties_sorted:
-        pg = party_results[p].get('proof_gen', float('nan'))
-        print(f"  {p:2d} parties: {pg:.4f} s  ≈ {fmt_1f(pg)} s")
-    p2_pg  = party_results[2].get('proof_gen', float('nan'))
-    p16_pg = party_results[16].get('proof_gen', float('nan')) if 16 in party_results else float('nan')
-    print(f"\nTeX sentence: PermVanish from {fmt_1f(p2_pg)} s at 2 parties to {fmt_1f(p16_pg)} s at 16 parties")
-
-    print("\n" + "=" * 70)
-    print("END OF STATS")
+    print()
     print("=" * 70)
 
 

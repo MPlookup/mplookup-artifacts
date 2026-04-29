@@ -17,7 +17,7 @@ The main component of the MPlookup system. It includes:
 - A script to run the experiments. Location: `mpc-lookup/test.bash`.
 - Collected experiment results. Location: `mpc-lookup/results`.
 - A script to draw the experiment figures in the Evaluation section. Location: `mpc-lookup/result-analyze/draw.py`.
-- A script to produce all the result data used in the Evaluation section. Location: `mpc-lookup/result-analyze/compute-evaluation-data.py`.
+- A script to produce all the numerical data used in the Evaluation section. Location: `mpc-lookup/result-analyze/compute-evaluation-data.py`.
 
 Instructions to run the experiments:
 
@@ -89,8 +89,8 @@ max_n=1024
 ```
 
 Below explains the parameters:
-- `parties`: the number of multi-party computation parties, or "provers".
-- `test_naive`: whether to test the naive implementation (0: test MPlookup; 1: test strawman).
+- `parties`: the number of multi-party computation parties, i.e., provers.
+- `test_naive`: whether to test the naive implementation (0: test MPlookup; 1: test the strawman).
 - `n`: the initial size of the input vector t. The script will double the size of t in each iteration until it reaches `max_n`. Must be a power of 2.
 - `max_n`: the maximum size of the input vector t. Must be a power of 2.
 
@@ -106,7 +106,7 @@ In the end, the script will save the log files to the `mpc-lookup/results` folde
 
 To generate the evaluation data or draw figures used in the Evaluation section, run the following commands:
 
-Initially, you need to set up a Python virtual environment and install the required dependencies:
+Initially, set up a Python virtual environment and install the required dependencies:
 
 ```sh
 cd mpc-lookup/result-analyze/
@@ -117,7 +117,7 @@ pip install -r requirements.txt
 
 Edit the figure format in `draw.py` if needed. By default, it will save the figures in PDF format.
 
-Then, you can run the scripts to compute evaluation data and draw figures:
+Then, run the scripts to compute evaluation data and draw figures:
 
 ```sh
 python compute-evaluation-data.py
