@@ -737,6 +737,249 @@ pub trait FieldShare<F: Field>:
         h_bits
     }
 
+    /// Batch bit decompose N secret-shared field elements.
+    ///
+    /// Batches all N edaBit generations and opens all N masked values in a single
+    /// broadcast round (instead of N separate rounds), reducing communication from
+    /// O(N) to O(1) broadcasts for the reveal step.
+    ///
+    /// Always uses the full modulus bit length internally (required for correctness
+    /// with the current DummyEdaBitSource). The returned vecs have length equal to
+    /// `F::Params::MODULUS.num_bits()`.
+    ///
+    /// Returns `bits[i][b]` = boolean share of bit `b` of element `i` (LSB first).
+    fn batch_bit_decompose_elems(values: &[Self]) -> Vec<Vec<bool>>
+    where
+        F: PrimeField,
+    {
+        use crate::share::bit_ops::*;
+
+        let n = values.len();
+        if n == 0 {
+            return vec![];
+        }
+
+        // Always use the full modulus bit count – the DummyEdaBitSource generates
+        // edaBits whose arithmetic share is the full random field element, so the
+        // bit decomposition protocol requires bit_length == modulus bits.
+        let bit_length = F::Params::MODULUS.num_bits() as usize;
+
+        // Generate edaBits locally and compute c = value - edabit.arith_share for each element
+        let mut edabits = Vec::with_capacity(n);
+        let mut c_shares = Vec::with_capacity(n);
+        for &value in values {
+            let edabit = DummyEdaBitSource::<F, Self>::default().edabit(bit_length);
+            let mut c_share = value;
+            c_share.sub(&edabit.arith_share);
+            c_shares.push(c_share);
+            edabits.push(edabit);
+        }
+
+        // Batch open all c values in one round
+        let c_values = Self::batch_open(c_shares);
+
+        // Complete each decomposition (pure local computation after the open)
+        (0..n)
+            .map(|i| {
+                Self::bit_decompose_from_opened(
+                    &c_values[i],
+                    &edabits[i].bool_shares,
+                    bit_length,
+                )
+            })
+            .collect()
+    }
+
+    /// Batch compare N pairs of precomputed bit sequences.
+    ///
+    /// All N comparisons run simultaneously: each sequential step of the prefix-OR
+    /// circuit is processed in a single `batch_beaver_bitwise_or` call, reducing
+    /// sequential broadcasts from O(bit_count × N) to O(bit_count).
+    ///
+    /// Returns `result[i]` = boolean share of (left[i] < right[i]).
+    fn batch_compare_bits_shared(
+        all_left_bits: &[Vec<bool>],
+        all_right_bits: &[Vec<bool>],
+    ) -> Vec<bool>
+    where
+        F: PrimeField,
+    {
+        use crate::share::bit_ops::*;
+
+        let n = all_left_bits.len();
+        if n == 0 {
+            return vec![];
+        }
+        assert_eq!(n, all_right_bits.len());
+        let bit_count = all_left_bits[0].len();
+        assert!(all_left_bits.iter().all(|b| b.len() == bit_count));
+        assert!(all_right_bits.iter().all(|b| b.len() == bit_count));
+
+        let mut beaver_source = DummyBooleanBeaverSource;
+
+        // Step 1: XOR all bits (local, no communication).
+        // xor_bits[pair][step] where step 0 = MSB.
+        let xor_bits: Vec<Vec<bool>> = (0..n)
+            .map(|i| {
+                (0..bit_count)
+                    .rev()
+                    .map(|b| BooleanOps::bitwise_xor(all_left_bits[i][b], all_right_bits[i][b]))
+                    .collect()
+            })
+            .collect();
+
+        // Step 2: Prefix-OR across MSB→LSB.
+        // Each of the (bit_count - 1) rounds processes all n pairs simultaneously.
+        let mut prefix_or: Vec<Vec<bool>> = (0..n)
+            .map(|_| vec![false; bit_count])
+            .collect();
+        for i in 0..n {
+            prefix_or[i][0] = xor_bits[i][0];
+        }
+        for step in 1..bit_count {
+            let or_lefts: Vec<bool> = (0..n).map(|i| prefix_or[i][step - 1]).collect();
+            let or_rights: Vec<bool> = (0..n).map(|i| xor_bits[i][step]).collect();
+            let results =
+                BooleanOps::batch_beaver_bitwise_or(&or_lefts, &or_rights, &mut beaver_source);
+            for i in 0..n {
+                prefix_or[i][step] = results[i];
+            }
+        }
+
+        // Step 3: Selection bits — selection[pair][step] = xor[step] AND NOT prefix_or[step-1].
+        // Batch all ANDs for steps 1..bit_count in one call.
+        let mut selection_bits: Vec<Vec<bool>> = (0..n)
+            .map(|i| {
+                let mut s = Vec::with_capacity(bit_count);
+                s.push(xor_bits[i][0]);
+                s
+            })
+            .collect();
+
+        if bit_count > 1 {
+            let mut and_lefts = Vec::with_capacity(n * (bit_count - 1));
+            let mut and_rights = Vec::with_capacity(n * (bit_count - 1));
+            for i in 0..n {
+                for step in 1..bit_count {
+                    and_lefts.push(xor_bits[i][step]);
+                    and_rights.push(BooleanOps::bitwise_not(prefix_or[i][step - 1]));
+                }
+            }
+            let and_results = BooleanOps::batch_beaver_bitwise_and(
+                &and_lefts,
+                &and_rights,
+                &mut beaver_source,
+            );
+            for i in 0..n {
+                for step in 1..bit_count {
+                    selection_bits[i].push(and_results[i * (bit_count - 1) + (step - 1)]);
+                }
+            }
+        }
+
+        // Step 4: selected[pair][step] = selection[step] AND right_bit[step].
+        // Batch all ANDs in one call.
+        let mut sel_lefts = Vec::with_capacity(n * bit_count);
+        let mut sel_rights = Vec::with_capacity(n * bit_count);
+        for i in 0..n {
+            for step in 0..bit_count {
+                let bit_idx = bit_count - 1 - step; // convert MSB-first step to LSB-first index
+                sel_lefts.push(selection_bits[i][step]);
+                sel_rights.push(all_right_bits[i][bit_idx]);
+            }
+        }
+        let selected_results = BooleanOps::batch_beaver_bitwise_and(
+            &sel_lefts,
+            &sel_rights,
+            &mut beaver_source,
+        );
+
+        // Step 5: Tree-OR reduction per pair.
+        // Each level batches all n pairs × (level_width / 2) ORs together.
+        let mut current_levels: Vec<Vec<bool>> = (0..n)
+            .map(|i| selected_results[i * bit_count..(i + 1) * bit_count].to_vec())
+            .collect();
+
+        while current_levels[0].len() > 1 {
+            let level_len = current_levels[0].len();
+            let pairs_count = level_len / 2;
+
+            if pairs_count > 0 {
+                let mut or_lefts = Vec::with_capacity(n * pairs_count);
+                let mut or_rights = Vec::with_capacity(n * pairs_count);
+                for i in 0..n {
+                    for p in 0..pairs_count {
+                        or_lefts.push(current_levels[i][p * 2]);
+                        or_rights.push(current_levels[i][p * 2 + 1]);
+                    }
+                }
+                let or_results = BooleanOps::batch_beaver_bitwise_or(
+                    &or_lefts,
+                    &or_rights,
+                    &mut beaver_source,
+                );
+                let new_len = pairs_count + (level_len % 2);
+                for i in 0..n {
+                    let mut next = Vec::with_capacity(new_len);
+                    for p in 0..pairs_count {
+                        next.push(or_results[i * pairs_count + p]);
+                    }
+                    if level_len % 2 == 1 {
+                        next.push(*current_levels[i].last().unwrap());
+                    }
+                    current_levels[i] = next;
+                }
+            } else {
+                // Only one element (odd), nothing to merge
+                break;
+            }
+        }
+
+        (0..n).map(|i| current_levels[i][0]).collect()
+    }
+
+    /// Batch B2A conversion: convert N boolean shares to N arithmetic shares.
+    ///
+    /// All N conversions share a single `batch_open_bool` call (1 broadcast) instead
+    /// of N separate `open_bool` calls.
+    fn batch_b2a_elems(bool_shares: &[bool]) -> Vec<Self>
+    where
+        F: PrimeField,
+    {
+        use crate::share::bit_ops::*;
+
+        let n = bool_shares.len();
+        if n == 0 {
+            return vec![];
+        }
+
+        // Generate n DaBits locally
+        let dabits: Vec<_> = (0..n)
+            .map(|_| DummyDaBitSource::<F, Self>::default().dabit())
+            .collect();
+
+        // Compute all delta = bool_share XOR dabit.bool_share (local)
+        let delta_shares: Vec<bool> = (0..n)
+            .map(|i| bool_shares[i] ^ dabits[i].bool_share)
+            .collect();
+
+        // Batch open all deltas in one broadcast
+        let deltas = BooleanOps::batch_open_bool(&delta_shares);
+
+        // Compute arithmetic results locally
+        (0..n)
+            .map(|i| {
+                if !deltas[i] {
+                    dabits[i].arith_share
+                } else {
+                    let mut one_share = Self::from_public(F::one());
+                    one_share.sub(&dabits[i].arith_share);
+                    one_share
+                }
+            })
+            .collect()
+    }
+
 }
 
 pub type DensePolynomial<T> = Vec<T>;

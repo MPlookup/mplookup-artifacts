@@ -259,6 +259,113 @@ impl<T: Field, S: FieldShare<T>> MpcField<T, S> {
         // Convert back to MpcField
         result_shares.into_iter().map(Self::Shared).collect()
     }
+
+    /// Batch bit decompose N values into boolean shares.
+    ///
+    /// Batches all reveals into a single communication round.
+    /// Returns `bits[i][b]` = boolean share of bit `b` of `values[i]` (LSB first).
+    /// All modulus bits are returned; callers that only need the low `n` bits may
+    /// truncate each inner Vec.
+    #[inline]
+    pub fn batch_bit_decompose_bool(values: &[Self]) -> Vec<Vec<bool>>
+    where
+        T: PrimeField,
+        S: FieldShare<T>,
+    {
+        if values.is_empty() {
+            return vec![];
+        }
+        // Convert all to shares
+        let shares: Vec<S> = values
+            .iter()
+            .map(|v| match v {
+                Self::Public(x) => S::from_public(*x),
+                Self::Shared(s) => *s,
+            })
+            .collect();
+        S::batch_bit_decompose_elems(&shares)
+    }
+
+    /// Batch multiply two vectors of MpcField element-wise.
+    ///
+    /// All multiplications are batched into a single round of communication.
+    #[inline]
+    pub fn batch_mul_vec(xs: Vec<Self>, ys: Vec<Self>) -> Vec<Self>
+    where
+        T: PrimeField,
+        S: FieldShare<T>,
+    {
+        assert_eq!(xs.len(), ys.len());
+        if xs.is_empty() {
+            return vec![];
+        }
+        // Check homogeneity
+        let all_public = xs.iter().all(|x| matches!(x, Self::Public(_)))
+            && ys.iter().all(|y| matches!(y, Self::Public(_)));
+        if all_public {
+            return xs
+                .iter()
+                .zip(ys.iter())
+                .map(|(x, y)| match (x, y) {
+                    (Self::Public(a), Self::Public(b)) => {
+                        let mut r = *a;
+                        r *= b;
+                        Self::Public(r)
+                    }
+                    _ => unreachable!(),
+                })
+                .collect();
+        }
+        let x_shares: Vec<S> = xs
+            .iter()
+            .map(|v| match v {
+                Self::Public(x) => S::from_public(*x),
+                Self::Shared(s) => *s,
+            })
+            .collect();
+        let y_shares: Vec<S> = ys
+            .iter()
+            .map(|v| match v {
+                Self::Public(y) => S::from_public(*y),
+                Self::Shared(s) => *s,
+            })
+            .collect();
+        let result_shares =
+            S::batch_mul(x_shares, y_shares, &mut DummyFieldTripleSource::default());
+        result_shares.into_iter().map(Self::Shared).collect()
+    }
+
+    /// Batch compare N pairs of precomputed bit sequences.
+    ///
+    /// Returns `result[i]` = boolean share of (left[i] < right[i]).
+    /// All comparisons are processed in O(bit_count) sequential rounds,
+    /// regardless of N (N pairs are batched at each round).
+    #[inline]
+    pub fn batch_compare_bits(
+        left_bits: &[Vec<bool>],
+        right_bits: &[Vec<bool>],
+    ) -> Vec<bool>
+    where
+        T: PrimeField,
+        S: FieldShare<T>,
+    {
+        S::batch_compare_bits_shared(left_bits, right_bits)
+    }
+
+    /// Batch B2A conversion: convert N boolean shares to N arithmetic shares.
+    ///
+    /// Uses a single `batch_open_bool` call (1 broadcast) for all N conversions.
+    #[inline]
+    pub fn batch_b2a_bool(bool_shares: &[bool]) -> Vec<Self>
+    where
+        T: PrimeField,
+        S: FieldShare<T>,
+    {
+        S::batch_b2a_elems(bool_shares)
+            .into_iter()
+            .map(Self::Shared)
+            .collect()
+    }
 }
 
 impl<T: PrimeField, S: FieldShare<T>> MpcField<T, S> {

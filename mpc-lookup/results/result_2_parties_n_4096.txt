@@ -1,57 +1,57 @@
 Start:   Connecting
 ··Start:   To king 1
-··End:     To king 1 ...............................................................522.690µs
+··End:     To king 1 ...............................................................918.119µs
 ··Start:   From king 1
-··End:     From king 1 .............................................................42.406µs
-End:     Connecting ................................................................665.265µs
+··End:     From king 1 .............................................................48.148µs
+End:     Connecting ................................................................1.062ms
 Initialized MPC network from "data/2"
 Start:   From king 131080
-End:     From king 131080 ..........................................................103.788µs
+End:     From king 131080 ..........................................................124.442µs
 Start:   From king 65544
-End:     From king 65544 ...........................................................68.612µs
+End:     From king 65544 ...........................................................77.873µs
 Running secure_oblivious_lookup_permutation in MPC mode (n=4096, m=2048)
 Start:   secure_oblivious_lookup_permutation MPC n=4096, m=2048
 ··Start:   secure_oblivious_lookup_permutation total n=4096 m=2048
 ····Start:   secure_oblivious_lookup_permutation step 1: Sort the query vector n=4096 m=2048
-····End:     secure_oblivious_lookup_permutation step 1: Sort the query vector n=4096 m=2048 25318.387s
+····End:     secure_oblivious_lookup_permutation step 1: Sort the query vector n=4096 m=2048 391.328s
 ····Start:   secure_oblivious_lookup_permutation step 2: Compute first-occurrence indicators n=4096 m=2048
-····End:     secure_oblivious_lookup_permutation step 2: Compute first-occurrence indicators n=4096 m=2048 107.331s
+····End:     secure_oblivious_lookup_permutation step 2: Compute first-occurrence indicators n=4096 m=2048 117.560s
 ····Start:   secure_oblivious_lookup_permutation step 3: Construct membership polynomial n=4096 m=2048
-····End:     secure_oblivious_lookup_permutation step 3: Construct membership polynomial n=4096 m=2048 6.118s
+····End:     secure_oblivious_lookup_permutation step 3: Construct membership polynomial n=4096 m=2048 6.647s
 ····Start:   secure_oblivious_lookup_permutation step 4: Evaluate polynomial at table elements n=4096 m=2048
-····End:     secure_oblivious_lookup_permutation step 4: Evaluate polynomial at table elements n=4096 m=2048 59.368s
+····End:     secure_oblivious_lookup_permutation step 4: Evaluate polynomial at table elements n=4096 m=2048 83.582s
 ····Start:   secure_oblivious_lookup_permutation step 5: Compute unused indicators n=4096 m=2048
-····End:     secure_oblivious_lookup_permutation step 5: Compute unused indicators n=4096 m=2048 213.407s
+····End:     secure_oblivious_lookup_permutation step 5: Compute unused indicators n=4096 m=2048 229.371s
 ····Start:   secure_oblivious_lookup_permutation step 6: Compact unused elements n=4096 m=2048
-····End:     secure_oblivious_lookup_permutation step 6: Compact unused elements n=4096 m=2048 59756.575s
+····End:     secure_oblivious_lookup_permutation step 6: Compact unused elements n=4096 m=2048 749.908s
 ····Start:   secure_oblivious_lookup_permutation step 7: Compact unfilled positions n=4096 m=2048
-····End:     secure_oblivious_lookup_permutation step 7: Compact unfilled positions n=4096 m=2048 59978.640s
+····End:     secure_oblivious_lookup_permutation step 7: Compact unfilled positions n=4096 m=2048 756.047s
 ····Start:   secure_oblivious_lookup_permutation step 8: Create write records 1 n=4096 m=2048
-····End:     secure_oblivious_lookup_permutation step 8: Create write records 1 n=4096 m=2048 131.288µs
+····End:     secure_oblivious_lookup_permutation step 8: Create write records 1 n=4096 m=2048 201.425µs
 ····Start:   secure_oblivious_lookup_permutation step 9: Create write records 2 n=4096 m=2048
-····End:     secure_oblivious_lookup_permutation step 9: Create write records 2 n=4096 m=2048 201.456µs
+····End:     secure_oblivious_lookup_permutation step 9: Create write records 2 n=4096 m=2048 393.985µs
 ····Start:   secure_oblivious_lookup_permutation step 10: Combine and sort write records n=4096 m=2048
-····End:     secure_oblivious_lookup_permutation step 10: Combine and sort write records n=4096 m=2048 139759.718s
+····End:     secure_oblivious_lookup_permutation step 10: Combine and sort write records n=4096 m=2048 1514.930s
 ····Start:   secure_oblivious_lookup_permutation step 11: Construct output permutation n=4096 m=2048
-····End:     secure_oblivious_lookup_permutation step 11: Construct output permutation n=4096 m=2048 55.034µs
-··End:     secure_oblivious_lookup_permutation total n=4096 m=2048 .................285199.550s
-End:     secure_oblivious_lookup_permutation MPC n=4096, m=2048 ....................285199.550s
+····End:     secure_oblivious_lookup_permutation step 11: Construct output permutation n=4096 m=2048 36.907µs
+··End:     secure_oblivious_lookup_permutation total n=4096 m=2048 .................3849.377s
+End:     secure_oblivious_lookup_permutation MPC n=4096, m=2048 ....................3849.379s
 
 === Halo2 Lookup Argument PROOF Generation (MPC-Compatible) ===
 Start:   MarlinKZG10 setup
 ··Start:   KZG10::Setup with degree 24576
 ····Start:   Generating powers of G
-····End:     Generating powers of G ................................................651.894ms
+····End:     Generating powers of G ................................................657.170ms
 ····Start:   Generating powers of gamma * G
-····End:     Generating powers of gamma * G ........................................653.720ms
+····End:     Generating powers of gamma * G ........................................658.536ms
 ····Start:   Generating negative powers of h in G2
-····End:     Generating negative powers of h in G2 .................................251ns
-··End:     KZG10::Setup with degree 24576 ..........................................1.344s
+····End:     Generating negative powers of h in G2 .................................237ns
+··End:     KZG10::Setup with degree 24576 ..........................................1.355s
 ··Start:   Constructing `powers` of size 24576 for unshifted polys
-··End:     Constructing `powers` of size 24576 for unshifted polys .................426.599µs
+··End:     Constructing `powers` of size 24576 for unshifted polys .................503.554µs
 ··Start:   Constructing `shifted_powers` of size 8192
-··End:     Constructing `shifted_powers` of size 8192 ..............................138.636µs
-End:     MarlinKZG10 setup .........................................................1.346s
+··End:     Constructing `shifted_powers` of size 8192 ..............................163.957µs
+End:     MarlinKZG10 setup .........................................................1.357s
 Start:   Proof generation and reveal
 ··Start:   Committing to polynomials
 ····Start:   Polynomial a of degree 8191, degree bound Some(8191), and hiding bound None
@@ -59,339 +59,339 @@ Start:   Proof generation and reveal
 ········Start:   MSM to compute commitment to plaintext poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................226.537ms
-··········End:     MSM inner .......................................................226.617ms
-········End:     MSM to compute commitment to plaintext poly .......................228.153ms
+············End:     Base MSM ......................................................227.564ms
+··········End:     MSM inner .......................................................227.641ms
+········End:     MSM to compute commitment to plaintext poly .......................229.547ms
 ········Start:   MSM to compute commitment to random poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................32.201µs
-··········End:     MSM inner .......................................................37.391µs
-········End:     MSM to compute commitment to random poly ..........................42.633µs
-······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....228.204ms
+············End:     Base MSM ......................................................31.252µs
+··········End:     MSM inner .......................................................40.135µs
+········End:     MSM to compute commitment to random poly ..........................46.619µs
+······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....229.604ms
 ······Start:   Committing to polynomial of degree 8191 with hiding_bound: None
 ········Start:   MSM to compute commitment to plaintext poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................226.496ms
-··········End:     MSM inner .......................................................226.562ms
-········End:     MSM to compute commitment to plaintext poly .......................226.865ms
+············End:     Base MSM ......................................................227.859ms
+··········End:     MSM inner .......................................................227.936ms
+········End:     MSM to compute commitment to plaintext poly .......................228.374ms
 ········Start:   MSM to compute commitment to random poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................30.561µs
-··········End:     MSM inner .......................................................39.112µs
-········End:     MSM to compute commitment to random poly ..........................43.946µs
-······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....226.917ms
-····End:     Polynomial a of degree 8191, degree bound Some(8191), and hiding bound None 455.134ms
-··End:     Committing to polynomials ...............................................455.141ms
+············End:     Base MSM ......................................................29.992µs
+··········End:     MSM inner .......................................................39.576µs
+········End:     MSM to compute commitment to random poly ..........................47.574µs
+······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....228.458ms
+····End:     Polynomial a of degree 8191, degree bound Some(8191), and hiding bound None 458.082ms
+··End:     Committing to polynomials ...............................................458.090ms
 ··Start:   Committing to polynomials
 ····Start:   Polynomial s of degree 8191, degree bound Some(8191), and hiding bound None
 ······Start:   Committing to polynomial of degree 8191 with hiding_bound: None
 ········Start:   MSM to compute commitment to plaintext poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................226.483ms
-··········End:     MSM inner .......................................................226.540ms
-········End:     MSM to compute commitment to plaintext poly .......................227.258ms
+············End:     Base MSM ......................................................227.993ms
+··········End:     MSM inner .......................................................228.089ms
+········End:     MSM to compute commitment to plaintext poly .......................229.234ms
 ········Start:   MSM to compute commitment to random poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................32.498µs
-··········End:     MSM inner .......................................................40.738µs
-········End:     MSM to compute commitment to random poly ..........................45.721µs
-······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....227.316ms
+············End:     Base MSM ......................................................30.472µs
+··········End:     MSM inner .......................................................54.500µs
+········End:     MSM to compute commitment to random poly ..........................71.031µs
+······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....229.337ms
 ······Start:   Committing to polynomial of degree 8191 with hiding_bound: None
 ········Start:   MSM to compute commitment to plaintext poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................226.498ms
-··········End:     MSM inner .......................................................226.558ms
-········End:     MSM to compute commitment to plaintext poly .......................226.854ms
+············End:     Base MSM ......................................................227.880ms
+··········End:     MSM inner .......................................................227.991ms
+········End:     MSM to compute commitment to plaintext poly .......................228.431ms
 ········Start:   MSM to compute commitment to random poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................31.319µs
-··········End:     MSM inner .......................................................40.789µs
-········End:     MSM to compute commitment to random poly ..........................45.625µs
-······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....226.907ms
-····End:     Polynomial s of degree 8191, degree bound Some(8191), and hiding bound None 454.237ms
-··End:     Committing to polynomials ...............................................454.243ms
+············End:     Base MSM ......................................................30.165µs
+··········End:     MSM inner .......................................................54.695µs
+········End:     MSM to compute commitment to random poly ..........................71.830µs
+······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....228.534ms
+····End:     Polynomial s of degree 8191, degree bound Some(8191), and hiding bound None 457.900ms
+··End:     Committing to polynomials ...............................................457.911ms
 ··Start:   Committing to polynomials
 ····Start:   Polynomial a_prime of degree 8191, degree bound Some(8191), and hiding bound None
 ······Start:   Committing to polynomial of degree 8191 with hiding_bound: None
 ········Start:   MSM to compute commitment to plaintext poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................226.498ms
-··········End:     MSM inner .......................................................226.556ms
-········End:     MSM to compute commitment to plaintext poly .......................227.284ms
+············End:     Base MSM ......................................................227.819ms
+··········End:     MSM inner .......................................................227.931ms
+········End:     MSM to compute commitment to plaintext poly .......................229.048ms
 ········Start:   MSM to compute commitment to random poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................31.668µs
-··········End:     MSM inner .......................................................39.902µs
-········End:     MSM to compute commitment to random poly ..........................44.646µs
-······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....227.336ms
+············End:     Base MSM ......................................................30.874µs
+··········End:     MSM inner .......................................................52.804µs
+········End:     MSM to compute commitment to random poly ..........................72.276µs
+······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....229.153ms
 ······Start:   Committing to polynomial of degree 8191 with hiding_bound: None
 ········Start:   MSM to compute commitment to plaintext poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................226.445ms
-··········End:     MSM inner .......................................................226.505ms
-········End:     MSM to compute commitment to plaintext poly .......................226.806ms
+············End:     Base MSM ......................................................227.789ms
+··········End:     MSM inner .......................................................227.888ms
+········End:     MSM to compute commitment to plaintext poly .......................228.338ms
 ········Start:   MSM to compute commitment to random poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................31.209µs
-··········End:     MSM inner .......................................................39.519µs
-········End:     MSM to compute commitment to random poly ..........................44.186µs
-······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....226.858ms
-····End:     Polynomial a_prime of degree 8191, degree bound Some(8191), and hiding bound None 454.206ms
-··End:     Committing to polynomials ...............................................454.210ms
+············End:     Base MSM ......................................................30.229µs
+··········End:     MSM inner .......................................................46.768µs
+········End:     MSM to compute commitment to random poly ..........................62.142µs
+······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....228.431ms
+····End:     Polynomial a_prime of degree 8191, degree bound Some(8191), and hiding bound None 457.620ms
+··End:     Committing to polynomials ...............................................457.641ms
 ··Start:   Committing to polynomials
 ····Start:   Polynomial s_prime of degree 8191, degree bound Some(8191), and hiding bound None
 ······Start:   Committing to polynomial of degree 8191 with hiding_bound: None
 ········Start:   MSM to compute commitment to plaintext poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................226.414ms
-··········End:     MSM inner .......................................................226.458ms
-········End:     MSM to compute commitment to plaintext poly .......................227.195ms
+············End:     Base MSM ......................................................227.728ms
+··········End:     MSM inner .......................................................227.817ms
+········End:     MSM to compute commitment to plaintext poly .......................228.976ms
 ········Start:   MSM to compute commitment to random poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................30.695µs
-··········End:     MSM inner .......................................................38.523µs
-········End:     MSM to compute commitment to random poly ..........................43.069µs
-······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....227.247ms
+············End:     Base MSM ......................................................30.477µs
+··········End:     MSM inner .......................................................52.860µs
+········End:     MSM to compute commitment to random poly ..........................68.604µs
+······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....229.078ms
 ······Start:   Committing to polynomial of degree 8191 with hiding_bound: None
 ········Start:   MSM to compute commitment to plaintext poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................226.391ms
-··········End:     MSM inner .......................................................226.437ms
-········End:     MSM to compute commitment to plaintext poly .......................226.702ms
+············End:     Base MSM ......................................................227.762ms
+··········End:     MSM inner .......................................................227.847ms
+········End:     MSM to compute commitment to plaintext poly .......................228.247ms
 ········Start:   MSM to compute commitment to random poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................30.937µs
-··········End:     MSM inner .......................................................39.440µs
-········End:     MSM to compute commitment to random poly ..........................43.849µs
-······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....226.755ms
-····End:     Polynomial s_prime of degree 8191, degree bound Some(8191), and hiding bound None 454.013ms
-··End:     Committing to polynomials ...............................................454.021ms
+············End:     Base MSM ......................................................29.746µs
+··········End:     MSM inner .......................................................51.360µs
+········End:     MSM to compute commitment to random poly ..........................67.137µs
+······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....228.350ms
+····End:     Polynomial s_prime of degree 8191, degree bound Some(8191), and hiding bound None 457.462ms
+··End:     Committing to polynomials ...............................................457.480ms
 ··Start:   Committing to polynomials
 ····Start:   Polynomial z of degree 8191, degree bound Some(8191), and hiding bound None
 ······Start:   Committing to polynomial of degree 8191 with hiding_bound: None
 ········Start:   MSM to compute commitment to plaintext poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................226.266ms
-··········End:     MSM inner .......................................................226.350ms
-········End:     MSM to compute commitment to plaintext poly .......................227.229ms
+············End:     Base MSM ......................................................227.623ms
+··········End:     MSM inner .......................................................227.704ms
+········End:     MSM to compute commitment to plaintext poly .......................228.976ms
 ········Start:   MSM to compute commitment to random poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................32.279µs
-··········End:     MSM inner .......................................................40.258µs
-········End:     MSM to compute commitment to random poly ..........................45.268µs
-······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....227.283ms
+············End:     Base MSM ......................................................31.178µs
+··········End:     MSM inner .......................................................37.671µs
+········End:     MSM to compute commitment to random poly ..........................46.075µs
+······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....229.033ms
 ······Start:   Committing to polynomial of degree 8191 with hiding_bound: None
 ········Start:   MSM to compute commitment to plaintext poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................226.475ms
-··········End:     MSM inner .......................................................226.527ms
-········End:     MSM to compute commitment to plaintext poly .......................226.821ms
+············End:     Base MSM ......................................................227.265ms
+··········End:     MSM inner .......................................................227.334ms
+········End:     MSM to compute commitment to plaintext poly .......................227.700ms
 ········Start:   MSM to compute commitment to random poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................31.646µs
-··········End:     MSM inner .......................................................41.062µs
-········End:     MSM to compute commitment to random poly ..........................45.840µs
-······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....226.875ms
-····End:     Polynomial z of degree 8191, degree bound Some(8191), and hiding bound None 454.171ms
-··End:     Committing to polynomials ...............................................454.177ms
+············End:     Base MSM ......................................................29.611µs
+··········End:     MSM inner .......................................................38.491µs
+········End:     MSM to compute commitment to random poly ..........................44.301µs
+······End:     Committing to polynomial of degree 8191 with hiding_bound: None .....227.753ms
+····End:     Polynomial z of degree 8191, degree bound Some(8191), and hiding bound None 456.804ms
+··End:     Committing to polynomials ...............................................456.810ms
 ··Start:   From king 24
-··End:     From king 24 ............................................................41.571µs
+··End:     From king 24 ............................................................97.663µs
 ··Start:   Committing to polynomials
 ····Start:   Polynomial quotient of degree 24572, degree bound None, and hiding bound None
 ······Start:   Committing to polynomial of degree 24572 with hiding_bound: None
 ········Start:   MSM to compute commitment to plaintext poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................599.449ms
-··········End:     MSM inner .......................................................599.635ms
-········End:     MSM to compute commitment to plaintext poly .......................600.820ms
+············End:     Base MSM ......................................................602.647ms
+··········End:     MSM inner .......................................................602.782ms
+········End:     MSM to compute commitment to plaintext poly .......................604.224ms
 ········Start:   MSM to compute commitment to random poly
 ··········Start:   MSM inner
 ············Start:   Base MSM
-············End:     Base MSM ......................................................31.515µs
-··········End:     MSM inner .......................................................40.747µs
-········End:     MSM to compute commitment to random poly ..........................46.908µs
-······End:     Committing to polynomial of degree 24572 with hiding_bound: None ....600.877ms
-····End:     Polynomial quotient of degree 24572, degree bound None, and hiding bound None 600.885ms
-··End:     Committing to polynomials ...............................................600.894ms
+············End:     Base MSM ......................................................31.069µs
+··········End:     MSM inner .......................................................39.188µs
+········End:     MSM to compute commitment to random poly ..........................44.878µs
+······End:     Committing to polynomial of degree 24572 with hiding_bound: None ....604.279ms
+····End:     Polynomial quotient of degree 24572, degree bound None, and hiding bound None 604.287ms
+··End:     Committing to polynomials ...............................................604.294ms
 ··Start:   Computing witness polynomial
 ····Start:   From king 24
-····End:     From king 24 ..........................................................46.095µs
-··End:     Computing witness polynomial ............................................1.585ms
+····End:     From king 24 ..........................................................30.365µs
+··End:     Computing witness polynomial ............................................1.577ms
 ··Start:   Computing witness polynomial
 ····Start:   From king 24
-····End:     From king 24 ..........................................................44.526µs
-··End:     Computing witness polynomial ............................................1.489ms
+····End:     From king 24 ..........................................................38.576µs
+··End:     Computing witness polynomial ............................................1.473ms
 ··Start:   Computing witness polynomial
 ····Start:   From king 24
-····End:     From king 24 ..........................................................44.589µs
-··End:     Computing witness polynomial ............................................1.481ms
+····End:     From king 24 ..........................................................38.112µs
+··End:     Computing witness polynomial ............................................1.523ms
 ··Start:   Computing witness polynomial
 ····Start:   From king 24
-····End:     From king 24 ..........................................................34.171µs
-··End:     Computing witness polynomial ............................................1.479ms
+····End:     From king 24 ..........................................................42.210µs
+··End:     Computing witness polynomial ............................................1.531ms
 ··Start:   Computing witness polynomial
 ····Start:   From king 24
-····End:     From king 24 ..........................................................40.642µs
-··End:     Computing witness polynomial ............................................1.491ms
+····End:     From king 24 ..........................................................37.386µs
+··End:     Computing witness polynomial ............................................1.512ms
 ··Start:   Creating proof for unshifted polynomials
 ····Start:   Opening polynomial of degree 24572
 ······Start:   Computing witness polynomials
 ········Start:   Computing witness polynomial
 ··········Start:   From king 24
-··········End:     From king 24 ....................................................46.414µs
-········End:     Computing witness polynomial ......................................4.309ms
-······End:     Computing witness polynomials .......................................4.322ms
+··········End:     From king 24 ....................................................36.927µs
+········End:     Computing witness polynomial ......................................4.241ms
+······End:     Computing witness polynomials .......................................4.253ms
 ······Start:   Computing commitment to witness polynomial
 ········Start:   MSM inner
 ··········Start:   Base MSM
-··········End:     Base MSM ........................................................599.538ms
-········End:     MSM inner .........................................................599.644ms
-······End:     Computing commitment to witness polynomial ..........................600.784ms
-····End:     Opening polynomial of degree 24572 ....................................605.117ms
-··End:     Creating proof for unshifted polynomials ................................605.123ms
+··········End:     Base MSM ........................................................602.246ms
+········End:     MSM inner .........................................................602.432ms
+······End:     Computing commitment to witness polynomial ..........................603.397ms
+····End:     Opening polynomial of degree 24572 ....................................607.665ms
+··End:     Creating proof for unshifted polynomials ................................607.672ms
 ··Start:   Creating proof for shifted polynomials
 ····Start:   Computing commitment to witness polynomial
 ······Start:   MSM inner
 ········Start:   Base MSM
-········End:     Base MSM ..........................................................226.377ms
-······End:     MSM inner ...........................................................226.453ms
-····End:     Computing commitment to witness polynomial ............................226.780ms
+········End:     Base MSM ..........................................................227.647ms
+······End:     MSM inner ...........................................................227.725ms
+····End:     Computing commitment to witness polynomial ............................228.111ms
 ····Start:   Evaluating random polynomial
-····End:     Evaluating random polynomial ..........................................300ns
+····End:     Evaluating random polynomial ..........................................507ns
 ····Start:   Computing commitment to random witness polynomial
 ······Start:   MSM inner
 ········Start:   Base MSM
-········End:     Base MSM ..........................................................30.197µs
-······End:     MSM inner ...........................................................38.032µs
-····End:     Computing commitment to random witness polynomial .....................42.295µs
-··End:     Creating proof for shifted polynomials ..................................226.840ms
+········End:     Base MSM ..........................................................31.449µs
+······End:     MSM inner ...........................................................39.271µs
+····End:     Computing commitment to random witness polynomial .....................44.451µs
+··End:     Creating proof for shifted polynomials ..................................228.171ms
 ··Start:   Computing witness polynomial
 ····Start:   From king 24
-····End:     From king 24 ..........................................................44.451µs
-··End:     Computing witness polynomial ............................................1.610ms
+····End:     From king 24 ..........................................................38.121µs
+··End:     Computing witness polynomial ............................................1.685ms
 ··Start:   Creating proof for unshifted polynomials
 ····Start:   Opening polynomial of degree 8191
 ······Start:   Computing witness polynomials
 ········Start:   Computing witness polynomial
 ··········Start:   From king 24
-··········End:     From king 24 ....................................................36.640µs
-········End:     Computing witness polynomial ......................................1.516ms
-······End:     Computing witness polynomials .......................................1.527ms
+··········End:     From king 24 ....................................................36.575µs
+········End:     Computing witness polynomial ......................................1.508ms
+······End:     Computing witness polynomials .......................................1.517ms
 ······Start:   Computing commitment to witness polynomial
 ········Start:   MSM inner
 ··········Start:   Base MSM
-··········End:     Base MSM ........................................................226.107ms
-········End:     MSM inner .........................................................226.171ms
-······End:     Computing commitment to witness polynomial ..........................226.973ms
-····End:     Opening polynomial of degree 8191 .....................................228.510ms
-··End:     Creating proof for unshifted polynomials ................................228.516ms
+··········End:     Base MSM ........................................................227.664ms
+········End:     MSM inner .........................................................227.722ms
+······End:     Computing commitment to witness polynomial ..........................228.530ms
+····End:     Opening polynomial of degree 8191 .....................................230.059ms
+··End:     Creating proof for unshifted polynomials ................................230.066ms
 ··Start:   Creating proof for shifted polynomials
 ····Start:   Computing commitment to witness polynomial
 ······Start:   MSM inner
 ········Start:   Base MSM
-········End:     Base MSM ..........................................................226.462ms
-······End:     MSM inner ...........................................................226.512ms
-····End:     Computing commitment to witness polynomial ............................226.810ms
+········End:     Base MSM ..........................................................227.627ms
+······End:     MSM inner ...........................................................227.720ms
+····End:     Computing commitment to witness polynomial ............................228.091ms
 ····Start:   Evaluating random polynomial
-····End:     Evaluating random polynomial ..........................................357ns
+····End:     Evaluating random polynomial ..........................................566ns
 ····Start:   Computing commitment to random witness polynomial
 ······Start:   MSM inner
 ········Start:   Base MSM
-········End:     Base MSM ..........................................................30.371µs
-······End:     MSM inner ...........................................................38.757µs
-····End:     Computing commitment to random witness polynomial .....................43.498µs
-··End:     Creating proof for shifted polynomials ..................................226.867ms
+········End:     Base MSM ..........................................................30.700µs
+······End:     MSM inner ...........................................................46.490µs
+····End:     Computing commitment to random witness polynomial .....................74.646µs
+··End:     Creating proof for shifted polynomials ..................................228.208ms
 ··Start:   Computing witness polynomial
 ····Start:   From king 24
-····End:     From king 24 ..........................................................61.747µs
-··End:     Computing witness polynomial ............................................1.567ms
+····End:     From king 24 ..........................................................51.514µs
+··End:     Computing witness polynomial ............................................1.809ms
 ··Start:   Creating proof for unshifted polynomials
 ····Start:   Opening polynomial of degree 8191
 ······Start:   Computing witness polynomials
 ········Start:   Computing witness polynomial
 ··········Start:   From king 24
-··········End:     From king 24 ....................................................40.975µs
-········End:     Computing witness polynomial ......................................1.535ms
-······End:     Computing witness polynomials .......................................1.546ms
+··········End:     From king 24 ....................................................50.013µs
+········End:     Computing witness polynomial ......................................1.634ms
+······End:     Computing witness polynomials .......................................1.652ms
 ······Start:   Computing commitment to witness polynomial
 ········Start:   MSM inner
 ··········Start:   Base MSM
-··········End:     Base MSM ........................................................226.426ms
-········End:     MSM inner .........................................................226.496ms
-······End:     Computing commitment to witness polynomial ..........................227.394ms
-····End:     Opening polynomial of degree 8191 .....................................228.951ms
-··End:     Creating proof for unshifted polynomials ................................228.958ms
+··········End:     Base MSM ........................................................227.871ms
+········End:     MSM inner .........................................................227.967ms
+······End:     Computing commitment to witness polynomial ..........................228.778ms
+····End:     Opening polynomial of degree 8191 .....................................230.470ms
+··End:     Creating proof for unshifted polynomials ................................230.486ms
 ··Start:   Creating proof for shifted polynomials
 ····Start:   Computing commitment to witness polynomial
 ······Start:   MSM inner
 ········Start:   Base MSM
-········End:     Base MSM ..........................................................226.474ms
-······End:     MSM inner ...........................................................226.530ms
-····End:     Computing commitment to witness polynomial ............................226.827ms
+········End:     Base MSM ..........................................................227.832ms
+······End:     MSM inner ...........................................................227.913ms
+····End:     Computing commitment to witness polynomial ............................228.257ms
 ····Start:   Evaluating random polynomial
-····End:     Evaluating random polynomial ..........................................307ns
+····End:     Evaluating random polynomial ..........................................475ns
 ····Start:   Computing commitment to random witness polynomial
 ······Start:   MSM inner
 ········Start:   Base MSM
-········End:     Base MSM ..........................................................32.032µs
-······End:     MSM inner ...........................................................40.373µs
-····End:     Computing commitment to random witness polynomial .....................47.244µs
-··End:     Creating proof for shifted polynomials ..................................226.887ms
+········End:     Base MSM ..........................................................30.883µs
+······End:     MSM inner ...........................................................45.539µs
+····End:     Computing commitment to random witness polynomial .....................60.120µs
+··End:     Creating proof for shifted polynomials ..................................228.364ms
 Proof generated successfully
-End:     Proof generation and reveal ...............................................113.457s
+End:     Proof generation and reveal ...............................................114.927s
 Start:   Proof verification
 ··Start:   Checking evaluations
 ····Start:   Accumulating commitments and values
-····End:     Accumulating commitments and values ...................................1.361ms
+····End:     Accumulating commitments and values ...................................1.375ms
 ····Start:   Checking evaluation
-····End:     Checking evaluation Result: true.......................................5.690ms
-··End:     Checking evaluations ....................................................7.095ms
+····End:     Checking evaluation Result: true.......................................5.733ms
+··End:     Checking evaluations ....................................................7.181ms
 ··Start:   Checking evaluations
 ····Start:   Accumulating commitments and values
-····End:     Accumulating commitments and values ...................................258.040µs
+····End:     Accumulating commitments and values ...................................259.776µs
 ····Start:   Checking evaluation
-····End:     Checking evaluation Result: true.......................................5.684ms
-··End:     Checking evaluations ....................................................5.981ms
+····End:     Checking evaluation Result: true.......................................5.713ms
+··End:     Checking evaluations ....................................................6.033ms
 ··Start:   Checking evaluations
 ····Start:   Accumulating commitments and values
-····End:     Accumulating commitments and values ...................................268.917µs
+····End:     Accumulating commitments and values ...................................273.208µs
 ····Start:   Checking evaluation
-····End:     Checking evaluation Result: true.......................................5.672ms
-··End:     Checking evaluations ....................................................5.980ms
-End:     Proof verification ........................................................19.125ms
+····End:     Checking evaluation Result: true.......................................5.683ms
+··End:     Checking evaluations ....................................................6.030ms
+End:     Proof verification ........................................................19.349ms
 
 === MPC Mode Stats ===
 Stats: Stats {
-    bytes_sent: 9755874965,
-    bytes_recv: 9755677965,
-    broadcasts: 4137383268,
+    bytes_sent: 884903825,
+    bytes_recv: 884706825,
+    broadcasts: 52837635,
     to_king: 1,
     from_king: 14,
 }
 
 === MPC Mode Time Summary ===
   n=4096, m=2048
-  secure_oblivious_lookup_permutation: 285199.5495s
-  Proof setup:        1.3468s
-  Proof generation:   113.4578s
-  Proof verification: 19.1378ms
+  secure_oblivious_lookup_permutation: 3849.3791s
+  Proof setup:        1.3575s
+  Proof generation:   114.9272s
+  Proof verification: 19.3842ms

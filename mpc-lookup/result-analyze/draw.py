@@ -273,11 +273,13 @@ def _panel_a_preproc_time(ax, new_ns, new_times, common_ns, naive_times):
         label='Strawman', alpha=TRANSPARENCY)
     ax.set_xlabel('Input table size', fontsize=9)
     ax.set_ylabel('Preprocess Time (s)', fontsize=9)
+    ax.set_xscale('log')
+    ax.set_yscale('log')
     ax.xaxis.set_minor_locator(ticker.NullLocator())
     ax.yaxis.set_minor_locator(ticker.NullLocator())
     ax.legend(fontsize=7, bbox_to_anchor=(0.40, 1), bbox_transform=ax.transAxes)
-    ax.grid(True, alpha=0.3)
-    set_pow2_xticks(ax, new_ns)
+    ax.grid(True, which='both', alpha=0.3)
+    set_pow2_xticks_all(ax, new_ns)
     ax.tick_params(labelsize=8)
 
 
@@ -291,6 +293,8 @@ def _panel_b_comm_metrics(ax, new_ns, new_bytes, common_ns, naive_bytes, new_bc,
                   linewidth=1.5, markersize=4, label='Bytes, Strawman', alpha=TRANSPARENCY)
     ax.set_xlabel('Input table size', fontsize=9)
     ax.set_ylabel('Bytes Sent', fontsize=9, color='steelblue')
+    ax.set_xscale('log')
+    ax.set_yscale('log')
     ax.tick_params(axis='y', labelcolor='steelblue', labelsize=8)
     ax.tick_params(axis='x', labelsize=8)
     ax.xaxis.set_minor_locator(ticker.NullLocator())
@@ -303,14 +307,19 @@ def _panel_b_comm_metrics(ax, new_ns, new_bytes, common_ns, naive_bytes, new_bc,
     l4, = ax2.plot(common_ns, naive_bc, '^:', color='coral',
                    linewidth=1.5, markersize=4, label='Broadcasts, Strawman', alpha=TRANSPARENCY)
     ax2.set_ylabel('Broadcasts', fontsize=9, color='coral')
+    ax2.set_yscale('log')
     ax2.tick_params(axis='y', labelcolor='coral', labelsize=8)
     ax2.yaxis.set_minor_locator(ticker.NullLocator())
 
-    ax.legend([l1, l2, l3, l4], [l.get_label() for l in [l1, l2, l3, l4]],
+    # Split into two legends (one per y-axis) so each fits in white space.
+    ax.legend([l1, l2], [l1.get_label(), l2.get_label()],
               fontsize=7, loc='upper left', ncol=1,
-              bbox_to_anchor=(0.01, 0.885), bbox_transform=ax.transAxes)
-    ax.grid(True, alpha=0.3)
-    set_pow2_xticks(ax, new_ns)
+              bbox_to_anchor=(0.005, 0.9975), bbox_transform=ax.transAxes)
+    ax2.legend([l3, l4], [l3.get_label(), l4.get_label()],
+               fontsize=7, loc='upper right', ncol=1,
+               bbox_to_anchor=(1.015, 0.185), bbox_transform=ax2.transAxes)
+    ax.grid(True, which='both', alpha=0.3)
+    set_pow2_xticks_all(ax, new_ns)
 
 
 def _panel_c_speedup(ax, common_ns, speedup_mpc, speedup_bytes, speedup_bc):
@@ -411,17 +420,10 @@ def _panel_f_party_time(ax, parties, total_times):
     ax.xaxis.set_major_formatter(ticker.FixedFormatter([str(p) for p in parties]))
     ax.xaxis.set_minor_locator(ticker.NullLocator())
 
-    ## Set y-ticks at the 3 data values so all points have a tick label.
-    # ax.set_yticks(total_times)
-    # ax.yaxis.set_major_formatter(_SCI_FORMATTER)
-    
-    # Set y-ticks at nice round numbers
-    min_total_times = min(t for t in total_times if t > 0)
-    max_total_times = max(total_times)
-    # round min to 1 * 10^k and max to 10 * 10^k for some integer k, so that the y-axis range is a nice round number.
-    exp_min = int(np.floor(np.log10(min_total_times)))
-    exp_max = int(np.ceil(np.log10(max_total_times)))
-    ax.set_yticks([10 ** exp_min, 10 ** ((exp_min + exp_max) // 2), 10 ** exp_max])
+    # Set y-axis limits tight around the data
+    y_min = min(t for t in total_times if t > 0) * 0.5
+    y_max = max(total_times) * 2
+    ax.set_ylim(y_min, y_max)
 
     ax.yaxis.set_minor_locator(ticker.NullLocator())
     ax.grid(True, which='both', alpha=0.3)
@@ -430,7 +432,7 @@ def _panel_f_party_time(ax, parties, total_times):
 
 def _panel_g_party_comm(ax, parties, bytes_vals, bc_vals):
     """(g) Bytes sent (left y) + broadcasts (right y) vs #parties – log-log, dual y-axis."""
-    l1, = ax.plot(parties, bytes_vals, f'{'s'}-', color='steelblue',
+    l1, = ax.plot(parties, bytes_vals, 's-', color='steelblue',
                   linewidth=1.5, markersize=5, label='Bytes Sent', alpha=TRANSPARENCY)
     ax.set_xscale('log')
     ax.set_yscale('log')
@@ -439,40 +441,27 @@ def _panel_g_party_comm(ax, parties, bytes_vals, bc_vals):
     ax.set_xticks(parties)
     ax.xaxis.set_major_formatter(ticker.FixedFormatter([str(p) for p in parties]))
     ax.xaxis.set_minor_locator(ticker.NullLocator())
-    ## Set y-ticks at the 3 data values; suppress auto-generated log ticks.
-    # ax.set_yticks(bytes_vals)
-    # ax.yaxis.set_major_formatter(_SCI_FORMATTER)
-
-    # Set y-ticks at nice round numbers
-    min_bytes = min(b for b in bytes_vals if b > 0)
-    max_bytes = max(bytes_vals)
-    exp_min = int(np.floor(np.log10(min_bytes)))
-    exp_max = int(np.ceil(np.log10(max_bytes)))
-    ax.set_yticks([10 ** exp_min, 10 ** ((exp_min + exp_max) // 2), 10 ** exp_max])
+    # Set y-axis limits tight around the data
+    y_min_bytes = min(b for b in bytes_vals if b > 0) * 0.5
+    y_max_bytes = max(bytes_vals) * 2
+    ax.set_ylim(y_min_bytes, y_max_bytes)
 
     ax.yaxis.set_minor_locator(ticker.NullLocator())
     ax.tick_params(axis='y', labelcolor='steelblue', labelsize=8)
     ax.tick_params(axis='x', labelsize=8)
-    
+
     # adjust the label location according to the drawing result!
     # ax.yaxis.set_label_coords(-0.25, 0.5)
 
     ax2 = ax.twinx()
     ax2.set_yscale('log')
-    l2, = ax2.plot(parties, bc_vals, f'{'^'}--', color='coral',
+    l2, = ax2.plot(parties, bc_vals, '^--', color='coral',
                    linewidth=1.5, markersize=5, label='Broadcasts', alpha=TRANSPARENCY)
     ax2.set_ylabel('Broadcasts', fontsize=9, color='coral')
-    
-    ## Set y-ticks at the 3 data values; suppress auto-generated log ticks.
-    # ax2.set_yticks(sorted(set(bc_vals)))
-    # ax2.yaxis.set_major_formatter(_SCI_FORMATTER)
 
-    # Set y-ticks at nice round numbers
-    min_bc = min(b for b in bc_vals if b > 0)
-    max_bc = max(bc_vals)
-    exp_min = int(np.floor(np.log10(min_bc)))
-    exp_max = int(np.ceil(np.log10(max_bc)))
-    ax2.set_yticks([10 ** exp_min, 10 ** ((exp_min + exp_max) // 2), 10 ** exp_max])
+    # Broadcasts are constant across party counts; use tight range
+    bc_val = bc_vals[0]
+    ax2.set_ylim(bc_val * 0.5, bc_val * 2)
 
     ax2.yaxis.set_minor_locator(ticker.NullLocator())
     ax2.tick_params(axis='y', labelcolor='coral', labelsize=8)
@@ -484,58 +473,6 @@ def _panel_g_party_comm(ax, parties, bytes_vals, bc_vals):
               fontsize=7, loc='upper left', bbox_to_anchor=(0.01, 0.80),
               bbox_transform=ax.transAxes)
     ax.grid(True, which='both', alpha=0.3)
-
-
-def _panel_i_nlogn_verify(ax, plot_ns, step_data, step_nums, colors_steps):
-    """(i) Empirical O(N log²N) complexity check for the O(N log²N) preprocessing steps.
-
-    Plots T_step(N) / (N · log₂²(N)) vs N for the four oblivious-sort steps
-    (S1, S6, S7, S8) and Step 4 (multi-point polynomial evaluation), which are
-    the steps theoretically expected to be O(N log²N).
-    A horizontal (constant) profile confirms O(N log²N) scaling.
-    """
-    # Only the steps whose theoretical complexity is O(N log²N)
-    NLOGN_STEPS = {1, 4, 6, 7, 8}
-
-    ns_arr  = np.array(plot_ns, dtype=float)
-    log2_sq = np.log2(ns_arr) ** 2          # log₂²(N) at each data point
-    # Exclude any N ≤ 1 where log₂(N) = 0 to avoid division by zero
-    denom_valid = log2_sq > 0
-
-    markers = ['o', 's', '^', 'D', 'x', 'v', 'p', '*', 'h']
-    for j, snum in enumerate(step_nums):
-        if snum not in NLOGN_STEPS:
-            continue
-        t     = step_data[:, j]
-        valid = (t > 0) & denom_valid
-        if not valid.any():
-            continue
-        y = t[valid] / (ns_arr[valid] * log2_sq[valid])
-        ax.plot(ns_arr[valid], y,
-                marker=markers[j % len(markers)],
-                color=colors_steps[j],
-                linewidth=1.5, markersize=4, alpha=TRANSPARENCY,
-                label=STEP_TINY_LABELS.get(snum, f'S{snum}'))
-
-    ax.set_xscale('log')
-    ax.set_yscale('log')
-    ax.set_xlabel('Input table size', fontsize=9)
-    ax.set_ylabel(r'Time $/ (N\log^2 N)$  (s)', fontsize=9)
-    ax.xaxis.set_minor_locator(ticker.NullLocator())
-    ax.yaxis.set_minor_locator(ticker.NullLocator())
-    ax.grid(True, which='both', alpha=0.3)
-    set_pow2_xticks_all(ax, plot_ns)
-    ax.tick_params(labelsize=8)
-
-    # Legend: all 5 steps fit in one row
-    handles, labels = ax.get_legend_handles_labels()
-    leg = ax.legend(handles, labels, fontsize=7, ncol=len(handles),
-        handlelength=0.8, handletextpad=0.3,
-        columnspacing=0.5, borderpad=0.4, labelspacing=0.2,
-        loc='upper left', bbox_to_anchor=(0.005, 0.60),
-        bbox_transform=ax.transAxes)
-    for handle in leg.legend_handles:
-        handle.set_linewidth(0)
 
 
 def _panel_h_party_proof(ax, parties, t_setup, t_preproc, t_permvan, t_verify):
@@ -634,7 +571,6 @@ def fig_main_evaluation(new_results, naive_results, n_target=1024):
     _save('panel_c', (3.0, 2.4), _panel_c_speedup, common_ns, speedup_mpc, speedup_bytes, speedup_bc)
     _save('panel_d', (3.0, 2.4), _panel_d_proof_vs_n, proof_ns, t_setup, t_preproc, t_permvan, t_verify)
     _save('panel_e', (3.0, 2.4), _panel_e_step_abs, plot_ns_steps, step_data, step_nums, colors_steps)
-    _save('panel_i', (3.0, 2.4), _panel_i_nlogn_verify, plot_ns_steps, step_data, step_nums, colors_steps)
     _save('panel_f', (3.0, 2.4), _panel_f_party_time, parties, p_times)
     _save('panel_g', (3.0, 2.4), _panel_g_party_comm, parties, p_bytes, p_bc)
     _save('panel_h', (3.0, 2.4), _panel_h_party_proof, parties, p_setup, p_preproc, p_permvan, p_verify)

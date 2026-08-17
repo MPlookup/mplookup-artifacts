@@ -248,6 +248,11 @@ impl BooleanOps {
     fn open_bool(share: bool) -> bool {
         use crate::channel::MpcSerNet;
         let all_shares = Net::broadcast(&share);
+        // Fix for single-party mode: if broadcast returns empty (no other parties),
+        // return the local share directly (king holds the full value in additive sharing).
+        if all_shares.is_empty() {
+            return share;
+        }
         all_shares.into_iter().fold(false, |acc, s| acc ^ s)
     }
 
@@ -257,23 +262,29 @@ impl BooleanOps {
     /// reducing communication rounds from O(n) to O(1) where n is the number of shares.
     pub fn batch_open_bool(shares: &[bool]) -> Vec<bool> {
         use crate::channel::MpcSerNet;
-        
+
         // Convert slice to Vec for broadcasting
         let shares_vec: Vec<bool> = shares.to_vec();
-        
+
         // Broadcast all shares at once - returns Vec<Vec<bool>> where each inner Vec is from one party
         let all_party_shares: Vec<Vec<bool>> = Net::broadcast(&shares_vec);
-        
+
+        // Fix for single-party mode: if broadcast returns empty (no other parties),
+        // return the local shares directly (king holds the full value in additive sharing).
+        if all_party_shares.is_empty() {
+            return shares_vec;
+        }
+
         // XOR all shares for each position
         let n_shares = shares.len();
         let mut results = vec![false; n_shares];
-        
+
         for party_shares in all_party_shares {
             for (i, &share) in party_shares.iter().enumerate() {
                 results[i] ^= share;
             }
         }
-        
+
         results
     }
 

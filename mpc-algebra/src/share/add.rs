@@ -133,6 +133,11 @@ impl<F: Field> FieldShare<F> for AdditiveFieldShare<F> {
     fn batch_open(selfs: impl IntoIterator<Item = Self>) -> Vec<F> {
         let self_vec: Vec<F> = selfs.into_iter().map(|s| s.val).collect();
         let all_vals = Net::broadcast(&self_vec);
+        // Fix for single-party mode: if broadcast returns empty (no other parties),
+        // return the local shares directly (king holds the full value in additive sharing).
+        if all_vals.is_empty() {
+            return self_vec;
+        }
         (0..self_vec.len()).map(|i| all_vals.iter().map(|v| &v[i]).sum()).collect()
     }
     fn add(&mut self, other: &Self) -> &mut Self {

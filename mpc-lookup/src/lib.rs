@@ -23,7 +23,7 @@
 pub mod halo2_lookup;
 
 // Re-export the main lookup functions at the crate root for backward compatibility
-pub use halo2_lookup::sorting::{bitonic_sort, bitonic_sort_by_key};
+pub use halo2_lookup::sorting::{bitonic_sort, bitonic_sort_by_key, radix_sort, radix_sort_by_key};
 pub use halo2_lookup::permutation::{
     secure_oblivious_lookup_permutation,
     naive_secure_oblivious_lookup_permutation,

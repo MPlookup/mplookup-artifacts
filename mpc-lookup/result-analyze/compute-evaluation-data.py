@@ -198,13 +198,13 @@ def main():
             crossover_n_below = common_ns[i - 1] if i > 0 else None
             break
 
-    n_hi       = 8192
+    n_hi       = max(common_ns)
     t_new_hi   = new_results[n_hi]['mpc_perm_time']
     t_naive_hi = naive_results[n_hi]['naive_mpc_perm_time']
     speedup_hi = t_naive_hi / t_new_hi
 
-    # Three consecutive doublings: 2048 → 4096 → 8192 → 16384
-    trio_ns     = [2048, 4096, 8192, 16384]
+    # Three consecutive doublings: 2048 → 4096 → 8192 → 16384 → 32768
+    trio_ns     = [2048, 4096, 8192, 16384, 32768]
     obs_ratios  = [new_results[trio_ns[i + 1]]['mpc_perm_time'] /
                    new_results[trio_ns[i]]['mpc_perm_time']
                    for i in range(len(trio_ns) - 1)]
@@ -268,10 +268,6 @@ def main():
     # Print evaluation section text
     # ------------------------------------------------------------------
 
-    print("=" * 70)
-    print("EVALUATION SECTION — all numbers computed from raw data")
-    print("=" * 70)
-
     # --- RQ1 ---
     print()
     print(r"\subsection{RQ1: Scalability and Comparison}")
@@ -282,7 +278,7 @@ def main():
     print(r"At small $N$, the strawman is faster due to lower constant factors: each iteration uses one $\mathcal{F}_\textrm{Eq}$ call, whereas \MPlookup invokes sorting networks and polynomial arithmetic.")
     print(f"The crossover lies between $N = {tex_n(crossover_n_below)}$ and $N = {tex_n(crossover_n)}$.")
     print(f"At $N = {tex_n(n_hi)}$, \\MPlookup achieves a ${speedup_hi:.2f}\\times$ speedup, completing in ${tex_n(t_new_hi)}$\\,s vs.\\ ${tex_n(t_naive_hi)}$\\,s for the strawman.")
-    print(f"From $N = {tex_n(trio_ns[0])}$ to ${tex_n(trio_ns[-1])}$, the observed doubling ratios {obs_str} closely match the theoretical {theo_str}.")
+    print(f"From $N = {tex_n(trio_ns[0])}$ to ${tex_n(trio_ns[-1])}$, the observed doubling ratios are {obs_str}, compared to the theoretical $O(N\\log^2 N)$ ratios of {theo_str}.")
     print()
     print(f"Figure~\\ref{{fig:rq1_speedup}} shows speedups in preprocessing time, bytes sent, and broadcast count; the time speedup turns decisively in \\MPlookup's favour beyond $N = {tex_n(crossover_n)}$.")
     print(f"Communication savings are more pronounced: at $N = {tex_n(n_hi)}$, \\MPlookup sends approximately ${bs_speedup:.0f}\\times$ fewer bytes, as the strawman's $O(N^2)$ equality comparisons each require a full MPC round.")
@@ -293,7 +289,6 @@ def main():
     print(r"\subsection{RQ2: Step-Level Performance Breakdown}")
     print()
     print(r"Figure~\ref{fig:rq2_steps} shows the time cost contributed by each of the nine steps of Algorithm~\ref{alg:mplookup-preprocessing} across all tested table sizes.")
-    print(r"Figure~\ref{fig:rq2_nlogn} plots the time cost of each step divided by $N\log^2 N$ for Steps~1, 4, 6, 7, 8. For Steps~1, 6, 7, 8, flat curves confirm $O(N\log^2 N)$ scaling. For Step~4, the line is close to $O(N \log N)$ scaling. This is because both subproduct tree construction ($O(N \log N)$) and multi-point evaluation ($O(N \log^2 N)$) are included in Step~4, and the subproduct tree construction contributes more time cost.")
     print()
     print(r"Figure~\ref{fig:rq2_mplookup_phases} breaks down the four phases of \MPlookup, setup, proof generation consisting of $\Pi_\textrm{Preprocess}$ and $\Pi_\textrm{PermVanish}$, and finally verification.")
     print(f"$\\Pi_\\textrm{{Preprocess}}$ overwhelmingly dominates the total cost across all tested sizes, while verification remains essentially constant at approximately ${ver_ms_approx}$\\,ms regardless of $N$.")
@@ -303,16 +298,12 @@ def main():
     print()
     print(r"\subsection{RQ3: Scaling with the Number of Parties}")
     print()
-    print(f"Figure~\\ref{{fig:rq3_parties}} shows preprocessing time at $N=1{{,}}024$, $M=512$: from ${tex_n(base_time)}$\\,s for 2 parties to {oxford_join(times_tex)}---slowdowns of {oxford_join(speedups_tex)} over the 2-party baseline.")
+    print(f"Figure~\\ref{{fig:rq3_parties}} shows preprocessing time at $N=1{{,}}024$, $M=512$: from ${tex_n(base_time)}$\\,s for 2 parties to {oxford_join(times_tex)}---speedups of {oxford_join(speedups_tex)} over the 2-party baseline.")
     print(r"Figure~\ref{fig:rq3_comm} shows bytes sent scales similarly to time, while broadcast count remains constant across party counts, consistent with the communication structure.")
     print()
     print(f"In Figure~\\ref{{fig:rq3_phases}}, the setup time and verification time remain stable because they are single-user protocols, while $\\Pi_\\textrm{{PermVanish}}$ grows from ${pg_2:.1f}$\\,s at 2 parties to ${pg_16:.1f}$\\,s at 16 parties as additional parties require more collaborative KZG commitment rounds.")
-    print()
-    print(r"We note that the evaluation results are measured with \textsf{CompatCircuit} as the ABB, whose $\mathcal{F}_\textrm{LT}$ operation requires $O(\log_2 p)$ sequential communication rounds per comparison over the BLS12-377 scalar field, where $\log_2 p \approx 253$.")
-    print(r"This is the primary source of the large constant factor observed throughout.")
 
     print()
-    print("=" * 70)
 
 
 if __name__ == '__main__':
