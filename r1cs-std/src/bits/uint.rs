@@ -188,7 +188,7 @@ macro_rules! make_uint {
 
                     // Compute the maximum value of the sum so we allocate enough bits for
                     // the result
-                    let mut max_value = BigUint::from($native::max_value()) * BigUint::from(operands.len());
+                    let mut max_value = BigUint::from(<$native>::MAX) * BigUint::from(operands.len());
 
                     // Keep track of the resulting value
                     let mut result_value = Some(BigUint::zero());

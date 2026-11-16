@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Generated figure output (see README-figures.md). The pgf files that the paper
+# actually includes are committed in mplookup-paper/images/.
+panel_*.pdf
+panel_*.pgf

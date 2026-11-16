@@ -136,7 +136,7 @@ pub fn bitonic_sort_by_key(mut vec: Vec<(MF, MF, MF)>) -> Vec<(MF, MF, MF)> {
     vec
 }
 
-/// Radix sort for MpcField values using precomputed bits (bitonic network).
+/// Oblivious sort for MpcField values using precomputed bits (bitonic network).
 ///
 /// This is an optimized oblivious sorting algorithm that reduces the number of
 /// sequential communication rounds from O(N log²N × B) to O(log²N × B) by
@@ -149,12 +149,12 @@ pub fn bitonic_sort_by_key(mut vec: Vec<(MF, MF, MF)>) -> Vec<(MF, MF, MF)> {
 /// - Total: O(B × log²N) sequential rounds (vs. O(B × N/2 × log²N) in bitonic)
 ///
 /// The input vector length must be a power of 2.
-pub fn radix_sort(mut vec: Vec<MF>, bit_length: usize) -> Vec<MF> {
+pub fn mpc_sort(mut vec: Vec<MF>, bit_length: usize) -> Vec<MF> {
     let n = vec.len();
 
     if n < 2 || (n & (n - 1)) != 0 {
         panic!(
-            "radix_sort: vector length must be a power of 2 and at least 2, got {}",
+            "mpc_sort: vector length must be a power of 2 and at least 2, got {}",
             n
         );
     }
@@ -272,14 +272,14 @@ pub fn radix_sort(mut vec: Vec<MF>, bit_length: usize) -> Vec<MF> {
     vec
 }
 
-/// Radix sort for (key, value1, value2) tuples using precomputed bits (bitonic network).
+/// Oblivious sort for (key, value1, value2) tuples using precomputed bits (bitonic network).
 ///
 /// Sorts by the key field in ascending order using the same batched-bits approach
-/// as `radix_sort`. Only the key bits are precomputed; val1 and val2 are carried
+/// as `mpc_sort`. Only the key bits are precomputed; val1 and val2 are carried
 /// alongside using arithmetic MUX.
 ///
 /// The input vector length must be a power of 2.
-pub fn radix_sort_by_key(
+pub fn mpc_sort_by_key(
     mut vec: Vec<(MF, MF, MF)>,
     bit_length: usize,
 ) -> Vec<(MF, MF, MF)> {
@@ -287,7 +287,7 @@ pub fn radix_sort_by_key(
 
     if n < 2 || (n & (n - 1)) != 0 {
         panic!(
-            "radix_sort_by_key: vector length must be a power of 2 and at least 2, got {}",
+            "mpc_sort_by_key: vector length must be a power of 2 and at least 2, got {}",
             n
         );
     }
@@ -452,7 +452,7 @@ mod tests {
     }
 
     #[test]
-    fn test_radix_sort_public_values() {
+    fn test_mpc_sort_public_values() {
         let test_cases = vec![
             vec![F::from(3u64), F::from(1u64)],
             vec![F::from(4u64), F::from(2u64), F::from(3u64), F::from(1u64)],
@@ -470,10 +470,10 @@ mod tests {
 
         for input in test_cases {
             let n = input.len();
-            println!("Testing radix_sort with n={}", n);
+            println!("Testing mpc_sort with n={}", n);
 
             let mpc_input: Vec<MF> = input.iter().map(|&x| MF::Public(x)).collect();
-            let sorted = radix_sort(mpc_input, 64);
+            let sorted = mpc_sort(mpc_input, 64);
             let sorted_values: Vec<F> = sorted.iter().map(|x| x.reveal()).collect();
 
             let mut expected = input.clone();
@@ -481,7 +481,7 @@ mod tests {
 
             assert_eq!(
                 sorted_values, expected,
-                "Radix sort failed for input size {}",
+                "Oblivious sort failed for input size {}",
                 n
             );
             println!("  Passed for n={}", n);
@@ -489,7 +489,7 @@ mod tests {
     }
 
     #[test]
-    fn test_radix_sort_by_key_public_values() {
+    fn test_mpc_sort_by_key_public_values() {
         // Create (key, val1, val2) tuples with distinct keys
         let keys = vec![
             F::from(4u64),
@@ -509,7 +509,7 @@ mod tests {
             .map(|(&k, &(v1, v2))| (MF::Public(k), MF::Public(v1), MF::Public(v2)))
             .collect();
 
-        let sorted = radix_sort_by_key(mpc_input, 64);
+        let sorted = mpc_sort_by_key(mpc_input, 64);
 
         // Keys should be sorted ascending; values should follow the key
         let sorted_keys: Vec<F> = sorted.iter().map(|(k, _, _)| k.reveal()).collect();
@@ -534,6 +534,6 @@ mod tests {
             );
         }
 
-        println!("radix_sort_by_key test passed");
+        println!("mpc_sort_by_key test passed");
     }
 }

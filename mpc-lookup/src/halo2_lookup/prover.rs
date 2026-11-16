@@ -41,7 +41,7 @@
 use ark_ff::{FftField, Field, One, Zero};
 use ark_poly::domain::radix2::Radix2EvaluationDomain;
 use ark_poly::{EvaluationDomain, Polynomial as PolyTrait, UVPolynomial};
-use ark_poly::univariate::DensePolynomial;
+use ark_poly::univariate::{DensePolynomial, SparsePolynomial};
 use ark_poly::polynomial::univariate::DenseOrSparsePolynomial;
 use ark_poly_commit::{LabeledPolynomial, LabeledCommitment, PolynomialCommitment};
 use ark_poly_commit::marlin::marlin_pc::MarlinKZG10;
@@ -596,44 +596,46 @@ impl<D: Digest> LookupProver<D> {
         
         // DEBUG: Evaluate each constraint at domain point ω to verify they are zero
         debug_eprintln!(self.debug, "\n=== DEBUG: Evaluating constraints at ALL domain points ===");
-        let omega_mfr = MFr::Public(omega.reveal());
+        if self.debug {
+            let omega_mfr = MFr::Public(omega.reveal());
         
-        // Check at ALL domain points
-        for idx in 0..self.config.domain_size {
-            let omega_power = if idx == 0 {
-                MFr::one()
-            } else {
-                omega_mfr.pow(&[idx as u64])
-            };
-            let c1 = constraint_1.evaluate(&omega_power).reveal();
-            let c2 = constraint_2.evaluate(&omega_power).reveal();
-            let c3 = constraint_3.evaluate(&omega_power).reveal();
-            let c4 = constraint_4.evaluate(&omega_power).reveal();
-            let c5 = constraint_5.evaluate(&omega_power).reveal();
+            // Check at ALL domain points
+            for idx in 0..self.config.domain_size {
+                let omega_power = if idx == 0 {
+                    MFr::one()
+                } else {
+                    omega_mfr.pow(&[idx as u64])
+                };
+                let c1 = constraint_1.evaluate(&omega_power).reveal();
+                let c2 = constraint_2.evaluate(&omega_power).reveal();
+                let c3 = constraint_3.evaluate(&omega_power).reveal();
+                let c4 = constraint_4.evaluate(&omega_power).reveal();
+                let c5 = constraint_5.evaluate(&omega_power).reveal();
             
-            if !c1.is_zero() || !c2.is_zero() || !c3.is_zero() || !c4.is_zero() || !c5.is_zero() {
-                debug_eprintln!(self.debug, "\nNON-ZERO constraint at ω^{} (index {}):", idx, idx);
-                debug_eprintln!(self.debug, "  Constraint 1 (perm): {}", c1);
-                debug_eprintln!(self.debug, "  Constraint 2 (subset): {}", c2);
-                debug_eprintln!(self.debug, "  Constraint 3 (init A'): {}", c3);
-                debug_eprintln!(self.debug, "  Constraint 4 (init Z): {}", c4);
-                debug_eprintln!(self.debug, "  Constraint 5 (idem): {}", c5);
+                if !c1.is_zero() || !c2.is_zero() || !c3.is_zero() || !c4.is_zero() || !c5.is_zero() {
+                    debug_eprintln!(self.debug, "\nNON-ZERO constraint at ω^{} (index {}):", idx, idx);
+                    debug_eprintln!(self.debug, "  Constraint 1 (perm): {}", c1);
+                    debug_eprintln!(self.debug, "  Constraint 2 (subset): {}", c2);
+                    debug_eprintln!(self.debug, "  Constraint 3 (init A'): {}", c3);
+                    debug_eprintln!(self.debug, "  Constraint 4 (init Z): {}", c4);
+                    debug_eprintln!(self.debug, "  Constraint 5 (idem): {}", c5);
+                }
             }
-        }
         
-        // CRITICAL: Check constraint polynomial consistency before division
-        // Evaluate the combined constraint polynomial at all domain points
-        debug_eprintln!(self.debug, "\n=== CRITICAL: Verifying COMBINED constraint polynomial consistency ===");
-        for idx in 0..self.config.domain_size {
-            let omega_power = if idx == 0 {
-                MFr::one()
-            } else {
-                omega_mfr.pow(&[idx as u64])
-            };
-            let constraint_at_point = constraint_poly.evaluate(&omega_power).reveal();
-            if !constraint_at_point.is_zero() {
-                debug_eprintln!(self.debug, "ERROR: Combined constraint polynomial is NON-ZERO at ω^{}: {}", idx, constraint_at_point);
-                panic!("Constraint polynomial is not zero on domain - cannot compute valid quotient!");
+            // CRITICAL: Check constraint polynomial consistency before division
+            // Evaluate the combined constraint polynomial at all domain points
+            debug_eprintln!(self.debug, "\n=== CRITICAL: Verifying COMBINED constraint polynomial consistency ===");
+            for idx in 0..self.config.domain_size {
+                let omega_power = if idx == 0 {
+                    MFr::one()
+                } else {
+                    omega_mfr.pow(&[idx as u64])
+                };
+                let constraint_at_point = constraint_poly.evaluate(&omega_power).reveal();
+                if !constraint_at_point.is_zero() {
+                    debug_eprintln!(self.debug, "ERROR: Combined constraint polynomial is NON-ZERO at ω^{}: {}", idx, constraint_at_point);
+                    panic!("Constraint polynomial is not zero on domain - cannot compute valid quotient!");
+                }
             }
         }
         debug_eprintln!(self.debug, "✓ Combined constraint polynomial is zero at all domain points");
@@ -657,19 +659,15 @@ impl<D: Digest> LookupProver<D> {
         }
         
         // Compute vanishing polynomial Z_H(X) = X^domain_size - 1
-        let mut z_h_coeffs = vec![MFr::zero(); self.config.domain_size + 1];
-        z_h_coeffs[0] = MFr::Public(-Fr::one());  // -1
-        z_h_coeffs[self.config.domain_size] = MFr::one();  // X^domain_size
-        let z_h_poly = DensePolynomial::from_coefficients_vec(z_h_coeffs);
+        let z_h_poly = SparsePolynomial::from_coefficients_vec(vec![
+            (0, MFr::Public(-Fr::one())),  // -1
+            (self.config.domain_size, MFr::one()),  // X^domain_size
+        ]);
         
         debug_eprintln!(self.debug, "Vanishing polynomial Z_H(X) degree: {}", z_h_poly.degree());
         
         // CRITICAL: Verify Z_H is consistent (should be all public)
         debug_eprintln!(self.debug, "\n=== CRITICAL: Checking Z_H polynomial ===");
-        if self.debug { eprintln!("Z_H[0] (constant) = {}", z_h_poly.coeffs[0].reveal());
-        }
-        if self.debug { eprintln!("Z_H[{}] (X^{}) = {}", self.config.domain_size, self.config.domain_size, z_h_poly.coeffs[self.config.domain_size].reveal());
-        }
         debug_eprintln!(self.debug, "Z_H is_shared: {}", z_h_poly.is_shared());
         debug_eprintln!(self.debug, "constraint_poly is_shared: {}", constraint_poly.is_shared());
         
@@ -693,7 +691,7 @@ impl<D: Digest> LookupProver<D> {
         }
         
         // Verification checks (DEBUGGING ONLY)
-        if true {
+        if self.debug {
             // The remainder MUST be zero!
 
             // For MPC polynomials with shared coefficients, we need to reveal coefficients to properly check

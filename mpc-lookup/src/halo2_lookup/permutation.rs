@@ -10,7 +10,7 @@ use mpc_algebra::honest_but_curious::MpcField;
 use mpc_algebra::Reveal;
 
 use super::polynomial::{build_subproduct_tree, multipoint_eval};
-use super::sorting::{radix_sort, radix_sort_by_key};
+use super::sorting::{mpc_sort, mpc_sort_by_key};
 
 type F = ark_bls12_377::Fr;
 type MF = MpcField<F>;
@@ -80,7 +80,7 @@ pub fn secure_oblivious_lookup_permutation(
     ));
     let mut f_prime = f.to_vec();
     f_prime.resize(m_padded, MF::Public(F::zero()));
-    f_prime = radix_sort(f_prime, <F as PrimeField>::Params::MODULUS.num_bits() as usize);
+    f_prime = mpc_sort(f_prime, <F as PrimeField>::Params::MODULUS.num_bits() as usize);
     f_prime.truncate(m);
     if debug {
         debug_print_vec("f_prime after sort", &f_prime);
@@ -214,7 +214,7 @@ pub fn secure_oblivious_lookup_permutation(
             MF::Public(F::zero()),
         ),
     );
-    unused_value_rec = radix_sort_by_key(unused_value_rec, 34);
+    unused_value_rec = mpc_sort_by_key(unused_value_rec, 34);
     unused_value_rec.truncate(n);
     if debug {
         println!("DEBUG: unused_value_rec after compaction (first 16 shown)");
@@ -248,7 +248,7 @@ pub fn secure_oblivious_lookup_permutation(
             MF::Public(F::zero()),
         ),
     );
-    unfilled_position_rec = radix_sort_by_key(unfilled_position_rec, 34);
+    unfilled_position_rec = mpc_sort_by_key(unfilled_position_rec, 34);
     unfilled_position_rec.truncate(n);
     if debug {
         println!("DEBUG: unfilled_position_rec after compaction (first 16 shown)");
@@ -318,7 +318,7 @@ pub fn secure_oblivious_lookup_permutation(
             MF::Public(F::zero()),
         ),
     );
-    all_writes_keyed = radix_sort_by_key(all_writes_keyed, 34);
+    all_writes_keyed = mpc_sort_by_key(all_writes_keyed, 34);
     if debug {
         println!("DEBUG: all_writes_keyed after sort (first 32 shown)");
         for i in 0..std::cmp::min(32, all_writes_keyed.len()) {
@@ -557,7 +557,7 @@ pub fn naive_secure_oblivious_lookup_permutation(
     let m_padded = m.next_power_of_two();
     let mut f_prime = f.to_vec();
     f_prime.resize(m_padded, MF::Public(F::zero()));
-    f_prime = radix_sort(f_prime, <F as PrimeField>::Params::MODULUS.num_bits() as usize);
+    f_prime = mpc_sort(f_prime, <F as PrimeField>::Params::MODULUS.num_bits() as usize);
     f_prime.truncate(m);
     if debug {
         debug_print_vec("f_prime after sort", &f_prime);
